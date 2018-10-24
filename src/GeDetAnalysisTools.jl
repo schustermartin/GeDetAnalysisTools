@@ -14,7 +14,7 @@ module GeDetAnalysisTools
     using GeDetPulseShapeAnalysisToolsTmp
     using GeDetSpectrumAnalyserTmp
 
-    using Plots: @layout
+    import Plots.@layout
 
     const USER_DATA_PATH   = ENV["GEDET_USER_DATA_PATH"]   # e.g.: export GEDET_USER_DATA_PATH="/remote/ceph/group/gedet/data/lab"
     const USER_OUTPUT_PATH = ENV["GEDET_USER_OUTPUT_PATH"] # e.g.: export GEDET_USER_OUTPUT_PATH="/remote/ceph/user/l/lhauert/analysis_directory"
