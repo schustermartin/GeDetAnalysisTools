@@ -7,7 +7,7 @@ One has to create two environement variables:
 
 ## Example usage of data file handling:
 ```
-julia> using GeDetAnalysisTools
+julia> using Plots; pyplot(); using GeDetAnalysisTools
 
 julia> data_set_name = "2018-10-11_ea2cd342_lm_GALATEA_SuSie_rotational_scan_tsrc_Am241_ssrc_Am241_r23_z35";
 
@@ -41,8 +41,6 @@ tau_decay_constants: Float64[]
 new_data_structure: true
 
 julia> daq_cal_energies = GeDetAnalysisTools.get_quick_calibrated_daq_energies(m);
-
-julia> using Plots; pyplot();
 
 julia> plot_energy_histograms(daq_cal_energies, SUSIE(), edges=0:1:6000) # @userplot recipe
 ```
