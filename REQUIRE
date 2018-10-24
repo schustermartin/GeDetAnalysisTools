@@ -1,0 +1,14 @@
+julia 1.0
+
+Dates
+HDF5
+StatsBase
+RecipesBase
+Statistics
+StaticArrays
+ProgressMeter
+LinearAlgebra
+Plots
+ParallelProcessingTools
+GeDetPulseShapeAnalysisToolsTmp
+GeDetSpectrumAnalyserTmp
