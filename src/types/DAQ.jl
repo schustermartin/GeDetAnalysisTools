@@ -1,5 +1,3 @@
-export DAQ
-
 mutable struct DAQ
   name::AbstractString
   n_channels::Int
@@ -12,7 +10,6 @@ mutable struct DAQ
   end
 end
 
-export PIXI
 function PIXI()
     pixi = DAQ()
     pixi.name = "PIXI"
@@ -24,7 +21,6 @@ function PIXI()
     return pixi
 end
 
-export STRUCK
 function STRUCK()
     struck = DAQ()
     struck.name = "STRUCK"
@@ -35,7 +31,7 @@ function STRUCK()
     struck.decay_window_length = 5000-2750
     return struck
 end
-export TWO_STRUCKS
+
 function TWO_STRUCKS()
     struck = DAQ()
     struck.name = "STRUCK"

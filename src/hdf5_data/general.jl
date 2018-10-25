@@ -28,3 +28,15 @@ function get_number_of_channel(m::Measurement)::Int
 	n_channel::Int = get_number_of_channel(inputfiles[1])
 	return n_channel
 end
+
+function get_eltype_of_dataset(fn::AbstractString, gn::AbstractString, dn::AbstractString)::Type
+	h = h5open(fn, "r")
+	g = g_open(h, gn)
+	d = d_open(g, dn)
+	T = eltype(d)
+	close(h)
+	return T
+end
+function get_eltype_of_dataset(m::Measurement, gn::AbstractString, dn::AbstractString)::Type
+	return get_eltype_of_dataset( gather_absolute_paths_to_hdf5_input_files(m)[1], gn, dn)
+end

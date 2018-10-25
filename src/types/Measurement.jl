@@ -1,4 +1,3 @@
-export Measurement
 
 mutable struct Measurement
 	name::AbstractString
@@ -20,7 +19,6 @@ mutable struct Measurement
 	daq_livetime::Float64
 	temperature::Float64
 	pressure::Float64
-	tau_decay_constants::Array{Float64,1}
 	new_data_structure::Bool
 
 	function Measurement()
@@ -43,7 +41,6 @@ mutable struct Measurement
 			-1,         # daq_livetime
 			NaN64,      # temperature
 			NaN64,      # pressure
-			Float64[],   # tau_decay_constants
 			true
 			)
 	end
@@ -105,22 +102,6 @@ function get_datetime_from_measurement_name(m::Measurement; new_data_structure=t
 	end
 	return dt
 end
-
-# function get_time_from_measurement_name(m::Measurement; new_data_structure=true)
-# 	time = Dates.Time()
-# 	if new_data_structure == true
-# 		files = filter(x -> startswith(x, m.name) ,readdir(m.path_to_raw_data))
-# 		#ts = files[1][end-18:end-13]
-# 		ts = match(r"T\d{6}Z",files[1])# ::RegexMatch at this point, to access substring use .match
-# 		ts = ts.match[2:end-1]
-# 		try
-# 			time = Dates.Time( parse(Int, ts[1:2]), parse(Int,ts[3:4]), parse(Int,ts[5:6]) )
-# 		catch err
-# 			@warn err
-# 		end
-# 	end
-# 	return time
-# end
 
 function get_pressure_from_measurement_name(m::Measurement)
 	reg = r"_p_\d{1}.\d{1}e-*\d{0,3}mbar"
@@ -289,7 +270,6 @@ end
 
 ######### Creating Data Sets ################################
 
-export scan_conv_data_folder_for_measurements
 function scan_conv_data_folder_for_measurements(data_set_name::AbstractString; new_data_structure=true)
 	if new_data_structure==true
 		files = readdir(joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "conv_data") )
@@ -300,7 +280,6 @@ function scan_conv_data_folder_for_measurements(data_set_name::AbstractString; n
 		info("not yet implemented")
 	end
 end
-export data_set_from_conv_data
 function data_set_from_conv_data(data_set_name::AbstractString; new_data_structure=true)
 	data_set = Measurement[]
 	if new_data_structure == true
@@ -313,7 +292,6 @@ function data_set_from_conv_data(data_set_name::AbstractString; new_data_structu
 	end
 	return data_set
 end
-export scan_raw_data_folder_for_measurements
 function scan_raw_data_folder_for_measurements(data_set_name::AbstractString; new_data_structure=true)
 	if new_data_structure==true
 		files = readdir(joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data") )
@@ -324,7 +302,6 @@ function scan_raw_data_folder_for_measurements(data_set_name::AbstractString; ne
 		info("not yet implemented")
 	end
 end
-export data_set_from_raw_data
 function data_set_from_raw_data(data_set_name::AbstractString; new_data_structure=true)
 	data_set = Measurement[]
 	if new_data_structure==true
@@ -354,7 +331,6 @@ function scan_data_set_for_measurement_names(data_set_name::AbstractString; new_
 	return list_of_measurements
 end
 
-export Data_set
 function Data_set(data_set_name::AbstractString; new_data_structure=true)
 	data_set = Measurement[]
 	if new_data_structure==true
@@ -371,7 +347,6 @@ function Data_set(data_set_name::AbstractString; new_data_structure=true)
 	return data_set
 end
 ###############################################################
-# export sort_data_set
 import Base.sort
 function sort(data_set, keyword = "phi")
 	sorted_dataset = deepcopy(data_set)
@@ -401,7 +376,6 @@ function sort(data_set, keyword = "phi")
 end
 ###############################################################
 
-export gather_absolute_paths_to_hdf5_input_files
 function gather_absolute_paths_to_hdf5_input_files(m::Measurement)
 	if m.new_data_structure==true
 		# hdf5_data_path = joinpath(USER_DATA_PATH, "$(Dates.year(m.date))", m.data_set_name, "conv_data")
@@ -419,7 +393,6 @@ function gather_absolute_paths_to_hdf5_input_files(m::Measurement)
 	return input_files
 end
 
-export get_path_to_data_summary_file
 function get_path_to_data_summary_file(m::Measurement)
 	cal_data_path = joinpath(USER_DATA_PATH, "$(Dates.year(m.date))", m.data_set_name, "cal_data")
 	files = readdir(cal_data_path)
@@ -435,40 +408,11 @@ function get_path_to_data_summary_file(m::Measurement)
 	end
 end
 
-export results_path
-function results_path(m::Measurement)
-	results_path = joinpath(USER_OUTPUT_PATH, m.data_set_name)
-	return results_path
+function results_path(m::Measurement)::AbstractString
+	return joinpath(USER_OUTPUT_PATH, m.data_set_name)
 end
 
-# export get_total_number_of_events
-# function get_total_number_of_events(m::Measurement)
-#   input_hdf5_files = gather_absolute_paths_to_hdf5_input_files(m)
-#   n_events = UInt64(0)
-#   for file_i in input_hdf5_files
-#     h5open(file_i, "r+") do f
-#       g_daq = f["DAQ_Data"]
-#       d_file_number  = d_open(g_daq,"file_number")
-#       n_events += size(d_file_number,1)
-#     end
-#   end
-#   return n_events
-# end
-# function get_total_number_of_events(input_hdf5_files::Array{String,1})
-#   n_events = UInt64(0)
-#   for file_i in input_hdf5_files
-#     h5open(file_i, "r+") do f
-#       g_daq = f["DAQ_Data"]
-#       d_file_number  = d_open(g_daq,"file_number")
-#       n_events += size(d_file_number,1)
-#     end
-#   end
-#   return n_events
-# end
-############################# OLD WAY - GALATEA ###########
 
-
-export select
 function select(ms::Array{Measurement}, dimension::Symbol, value; approx::Bool=false)::Array{Measurement}
 	new_ms = Measurement[]
 	for m in ms

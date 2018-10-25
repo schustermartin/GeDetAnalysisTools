@@ -10,6 +10,7 @@ module GeDetAnalysisTools
     using StaticArrays
     using ProgressMeter
     using LinearAlgebra
+    using Distributions
     using ParallelProcessingTools
     using GeDetPulseShapeAnalysisToolsTmp
     using GeDetSpectrumAnalyserTmp
@@ -22,13 +23,12 @@ module GeDetAnalysisTools
     include("types/DAQ.jl")
     include("types/Detector.jl")
     include("types/Measurement.jl")
+    include("types/MFunction.jl")
 
     include("hdf5_data/hdf5_data_functions.jl")
 
-    include("plot_recipes.jl")
-
-    include("calibration.jl")
-
     include("analysis_tools/analysis_tools.jl")
+    
+    include("plot_recipes/plot_recipes.jl")
 
 end # module

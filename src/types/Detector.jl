@@ -1,4 +1,3 @@
-export Detector
 
 mutable struct Detector
   name::AbstractString
@@ -15,7 +14,6 @@ mutable struct Detector
   end
 end
 
-export SIEGFRIED_3
 function SIEGFRIED_3()
     s3 = Detector()
     s3.name = "Siegfried 3"
@@ -35,7 +33,6 @@ function SIEGFRIED_3()
     return s3
 end
 
-export SUSIE
 function SUSIE()
     s3 = Detector()
     s3.name = "Susie"
@@ -51,7 +48,6 @@ function SUSIE()
 end
 
 
-export segBEGe
 function segBEGe()
     s3 = Detector()
     s3.name = "segBEGe"

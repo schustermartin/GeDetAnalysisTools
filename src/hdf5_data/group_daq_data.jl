@@ -47,7 +47,6 @@ function get_daq_energy_spectra(m::Measurement; nbins::Int = 10000)::Array{Histo
 end
 
 
-
 function get_daq_pulse(fn::AbstractString, event_index::Int)::AbstractArray{<:Real, 2}
 	h = h5open(fn, "r+")
 	g = g_open(h,"DAQ_Data")
