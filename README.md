@@ -7,7 +7,7 @@ Inside this path their must be the correct data structure (NOT_YET_DOCUMENTET).
 - `GEDET_USER_OUTPUT_PATH` Path to where output should be produced. (e.g.: `export GEDET_USER_OUTPUT_PATH="/remote/ceph/user/<u>/<username>/analysis_directory"`)
 
 ## Example usage of data file handling:
-```
+```julia
 julia> using Plots; pyplot(); using GeDetAnalysisTools; GAT = GeDetAnalysisTools
 
 julia> data_set_name = "2018-10-11_ea2cd342_lm_GALATEA_SuSie_rotational_scan_tsrc_Am241_ssrc_Am241_r23_z35";
