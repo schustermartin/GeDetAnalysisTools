@@ -18,13 +18,23 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement)
 		
 		daq_core_energies *= c0_daq
 
+		for i in eachindex(daq_core_energies)
+			if daq_core_energies[i] == 0 
+				daq_core_energies[i] = 1
+			end
+		end
+
 		daq_core_energies_inv::Array{T, 1} = inv.(daq_core_energies[:, 1])
 
 		for iseg in 1:size(ratios, 2)
 			ichn = iseg + 1
 			ratios[:, iseg] = daq_core_energies[:, ichn] .* daq_core_energies_inv[:]
 		end
-		ratio_hists = [ fit(Histogram, ratios[:, iseg], -1.0:0.01:2, closed=:left ) for iseg in 1:size(ratios, 2)]
+
+		ratio_hists = [ Histogram(-1.0:0.01:2, :left ) for iseg in 1:size(ratios, 2) ]
+		for iseg in 1:size(ratios, 2)
+			append!(ratio_hists[iseg], ratios[:, iseg])
+		end
 
 		cal_peak_pos = zeros(Float64, n_segments)
 		ct_peak_pos  = zeros(Float64, n_segments)

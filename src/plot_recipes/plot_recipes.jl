@@ -42,7 +42,7 @@ end
 	ylabel --> "Counts"
 	seriestype := :step
 
-	layout --> if (length(pd.args) > 1 && typeof(gdd.args[2]) <: Detector)
+	layout --> if (length(gdd.args) > 1 && typeof(gdd.args[2]) <: Detector)
 		@layout [ 	chn1{0.16666w} chn20{0.16666w} 
 					chn2 chn3 chn4 chn5 chn6 chn7
 					chn8 chn9 chn10 chn11 chn12 chn13
@@ -50,7 +50,7 @@ end
 	else
 		(n_channel)
 	end
-	channel_order = if (length(pd.args) > 1 && typeof(gdd.args[2]) <: Detector)
+	channel_order = if (length(gdd.args) > 1 && typeof(gdd.args[2]) <: Detector)
 		gdd.args[2].channel_display_order
 	else
 		Int[chn for chn in 1:n_channel]
@@ -100,7 +100,7 @@ end
 	ylabel --> "Counts"
 	seriestype := :step
 
-	layout --> if (length(pd.args) > 1 && typeof(gdd.args[2]) <: Detector)
+	layout --> if (length(gdd.args) > 1 && typeof(gdd.args[2]) <: Detector)
 		@layout [ 	chn1{0.16666w} chn20{0.16666w} 
 					chn2 chn3 chn4 chn5 chn6 chn7
 					chn8 chn9 chn10 chn11 chn12 chn13
@@ -108,7 +108,7 @@ end
 	else
 		(n_channel)
 	end
-	channel_order = if (length(pd.args) > 1 && typeof(gdd.args[2]) <: Detector)
+	channel_order = if (length(gdd.args) > 1 && typeof(gdd.args[2]) <: Detector)
 		gdd.args[2].channel_display_order
 	else
 		Int[chn for chn in 1:n_channel]
