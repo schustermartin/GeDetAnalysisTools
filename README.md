@@ -8,11 +8,11 @@ Inside this path their must be the correct data structure (NOT_YET_DOCUMENTET).
 
 ## Example usage of data file handling:
 ```
-julia> using Plots; pyplot(); using GeDetAnalysisTools
+julia> using Plots; pyplot(); using GeDetAnalysisTools; GAT = GeDetAnalysisTools
 
 julia> data_set_name = "2018-10-11_ea2cd342_lm_GALATEA_SuSie_rotational_scan_tsrc_Am241_ssrc_Am241_r23_z35";
 
-julia> dataset = data_set_from_conv_data(data_set_name)
+julia> dataset = GAT.data_set_from_conv_data(data_set_name)
 
 2018-10-11_ea2cd342_lm_GALATEA_SuSie_rotational_scan_tsrc_Am241_ssrc_Am241_r23_z35
 contains 37 measurements
@@ -41,7 +41,7 @@ pressure: 8.6e-6
 tau_decay_constants: Float64[]
 new_data_structure: true
 
-julia> daq_cal_energies = GeDetAnalysisTools.get_quick_calibrated_daq_energies(m);
+julia> daq_cal_energies = GAT.get_quick_calibrated_daq_energies(m);
 
-julia> plot_energy_histograms(daq_cal_energies, SUSIE(), edges=0:1:6000) # @userplot recipe
+julia> energyhistogramdisplay(daq_cal_energies, GAT.SUSIE(), edges=0:1:6000) # @userplot recipe
 ```
