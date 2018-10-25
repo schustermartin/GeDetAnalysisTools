@@ -16,7 +16,7 @@ function get_daq_energies(m::Measurement)::Array{<:Real,2}
 	last_idx::Int = size(e1, 2)
 	e[:, 1:last_idx] = e1
 	@inbounds for i in 2:length(inputfiles)
-		en = get_daq_energies(inputfiles[1])
+		en = get_daq_energies(inputfiles[i])
 		n_new_events::Int = size(en, 2)
 		e[:, last_idx+1:last_idx+n_new_events] = en
 		last_idx += n_new_events
