@@ -1,6 +1,6 @@
 function write_analysis_result_dataset(fn::AbstractString, dataset_name::AbstractString, value)::Nothing
     h5f = h5open(fn, "r+")
-    g = g_open(h5f, "Results")
+    g = exists(h5f, "Results") ? g_open(h5f, "Results") : g_create(h5f, "Results")
     if exists(g, dataset_name) o_delete(g, dataset_name) end
     d_write(g, dataset_name, value)
     close(h5f)

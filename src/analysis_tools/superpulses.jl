@@ -62,3 +62,8 @@ function determine_superpulse(m::Measurement, channel::Int, energyrange::Abstrac
 
 	return superpulses ./ n_individual_pulses, n_individual_pulses
 end
+
+# for m in dataset
+# 	tdc = GAT.read_analysis_result_attribute(m, "tau_decay_constants")
+# 	GAT.write_analysis_result_dataset(m, "tau_decay_constants", tdc)
+# end

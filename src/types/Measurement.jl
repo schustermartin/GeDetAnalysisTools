@@ -75,8 +75,8 @@ display(dataset::Array{Measurement, 1}) = println(dataset)
 # false -> OLD / PIXI
 function get_measurement_name_from_compressed_data_file_name(filename::AbstractString; new_data_structure=true)
 	if new_data_structure == true
-		measurement_name = filename
-		# measurement_name = filename[1:searchindex(filename, match(r"-\d{8}T\d{6}Z.*",filename).match)-1]
+		# measurement_name = filename
+		measurement_name = filename[1:match(r"-\d{8}T\d{6}Z.*",filename).offset-1]
 		return measurement_name
 	else
 		if endswith(filename, ".bin.bz2")
@@ -245,7 +245,8 @@ end
 function Measurement(data_set_name::AbstractString, name::AbstractString; new_data_structure=true) #Give any(or the single one, if there is only one) complete filename of that measurement as 'name' argument.
 	m = Measurement()
 	# m.name = name
-	new_data_structure ? m.name = name[1:match(r"-\d{8}T\d{6}Z.*", name).offset-1] : m.name = name
+	# new_data_structure ? m.name = name[1:match(r"-\d{8}T\d{6}Z.*", name).offset-1] : m.name = name
+	m.name = name
 	m.data_set_name = data_set_name
 	m.new_data_structure = new_data_structure
 	if m.new_data_structure == true
@@ -277,18 +278,20 @@ function scan_conv_data_folder_for_measurements(data_set_name::AbstractString; n
 		list_of_measurements = get_measurement_name_from_compressed_data_file_name.(files)
 		list_of_measurements = union(list_of_measurements)
 	else
-		info("not yet implemented")
+		@info "not yet implemented"
 	end
 end
 function data_set_from_conv_data(data_set_name::AbstractString; new_data_structure=true)
 	data_set = Measurement[]
 	if new_data_structure == true
 		list_of_measurements = scan_conv_data_folder_for_measurements(data_set_name, new_data_structure=new_data_structure)
-		for m in list_of_measurements
-			push!(data_set, Measurement(data_set_name, m))
+		for mn in list_of_measurements
+			m = Measurement(data_set_name, mn)
+			# println(in(m, data_set))
+			push!(data_set, m) 
 		end
 	else
-		info("not yet implemented")
+		@info "not yet implemented"
 	end
 	return data_set
 end
@@ -299,7 +302,7 @@ function scan_raw_data_folder_for_measurements(data_set_name::AbstractString; ne
 		list_of_measurements = get_measurement_name_from_compressed_data_file_name.(files)
 		list_of_measurements = union(list_of_measurements)
 	else
-		info("not yet implemented")
+		@info "not yet implemented"
 	end
 end
 function data_set_from_raw_data(data_set_name::AbstractString; new_data_structure=true)
@@ -312,7 +315,7 @@ function data_set_from_raw_data(data_set_name::AbstractString; new_data_structur
 		end
 		return data_set
 	else
-		info("not yet implemented")
+		@info "not yet implemented"
 		return data_set
 	end
 end

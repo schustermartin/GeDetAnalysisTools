@@ -40,3 +40,28 @@ end
 function get_eltype_of_dataset(m::Measurement, gn::AbstractString, dn::AbstractString)::Type
 	return get_eltype_of_dataset( gather_absolute_paths_to_hdf5_input_files(m)[1], gn, dn)
 end
+
+import HDF5.exists
+function exists(fn::AbstractString, path::AbstractString)::Bool
+	h = h5open(fn, "r")
+	r = exists(h, path)
+	close(h)
+	return r
+end
+function exists(m::Measurement, path::AbstractString)::Bool
+	exists(gather_absolute_paths_to_hdf5_input_files(m)[1], path)
+end
+
+function is_new_pulse_format(fn::AbstractString)::Bool
+	new_pulse_format = false
+	h = h5open(fn, "r")
+	g = g_open(h, "DAQ_Data")
+	d = d_open(g, "daq_pulses")
+	if size(d, 1) > size(d, 2) new_pulse_format = true end
+	close(h)
+	return new_pulse_format
+end
+
+function is_new_pulse_format(m::Measurement)::Bool
+	return is_new_pulse_format(gather_absolute_paths_to_hdf5_input_files(m)[1])
+end

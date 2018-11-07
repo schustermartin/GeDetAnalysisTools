@@ -1,4 +1,4 @@
-function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_limit::T=T(0.05)) where {T<:Real} ##::Array{Int, 1}
+function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_limit::T=T(0.05); min_amplitude::T=T(100.0)) where {T<:Real} ##::Array{Int, 1}
 	source_facing_channels = Int[]
 	energies::Array{T, 2} = get_energies(m)
 	n_channel = size(energies, 1)
@@ -40,13 +40,13 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 		sno = scale / (2 * 2σ * offset)
 		sno_to_core = scale / bg_area
 		# println(ichn, "\t", sno_to_core)
-		if σ < 2.5 && σ > 0.4 && sno_to_core > sno_limit 
+		if σ < 2.5 && σ > 0.4 && sno_to_core > sno_limit && scale >= min_amplitude
 			# info("Channel $(chn):\tσ=$(signif(σ, 2))\t-\tSNO (2σ) = $(sno)")
 			if ichn != 1 push!(source_facing_channels, ichn) end
 		end
 		push!(frs, fit_result)
 	end
 
-	write_analysis_result_attribute(m, "source_facing_channels", source_facing_channels)
+	write_analysis_result_dataset(m, "source_facing_channels", source_facing_channels)
 	return source_facing_channels, ehists, funcs, frs
 end

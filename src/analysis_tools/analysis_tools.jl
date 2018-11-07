@@ -1,9 +1,12 @@
 include("math_functions.jl")
 
-# Standard analysis
+# general
 include("single_segment_selection.jl")
-include("calibration.jl")
+
+# standard calibration & cross-talk correction
+include("standard_calibration/0_standard_calibration.jl")
 
 # Source analysis
 include("determine_source_facing_segments.jl")
 include("superpulses.jl")
+include("crystal_axes.jl")

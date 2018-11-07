@@ -38,8 +38,8 @@ function SUSIE()
     s3.name = "Susie"
     s3.n_channels = 20
     # s3.channel_display_order = [1,2,6,10,3,7,11,4,8,12,16,20,24,15,19,23,14,18,22] old ROOT
-    s3.channel_display_order = [1, 3, 4, 5, 9, 10, 11, 15, 16, 17, 18, 19, 20, 12, 13, 14, 6, 7, 8,2]
-    s3.channel_display_layout = [4,6]
+    s3.channel_display_order = [1, 20, 19, 18, 14, 13, 12, 8, 7, 6, 5, 4, 3, 11, 10, 9, 17, 16, 15, 2]
+    s3.channel_display_layout = [4, 6]
     s3.chn_idx_neighbour_left = [ 18, 1, 2, 15, 4, 5, 12, 7, 8, 3, 16, 17, 6, 13, 14, 9, 10, 11, -1 ] .+ 1
     s3.chn_idx_neighbour_right = [ 2, 3, 16, 5, 6, 13, 8, 9, 10, 11, 12, 7, 14, 15, 4, 17, 18, 1, -1] .+ 1
     s3.chn_idx_neighbour_top = [ 19, 19, 19, 1, 2, 3, 4, 5, 6, 13, 14, 15, 16, 17, 18, 19, 19, 19, -1] .+ 1
