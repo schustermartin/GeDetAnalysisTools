@@ -3,6 +3,7 @@ mutable struct Measurement
 	name::AbstractString
 	data_set_name::AbstractString
 	path_to_raw_data::AbstractString
+	path_to_conv_data::AbstractString
 	results_path::AbstractString
 	datetime::DateTime
 	side_source::AbstractString
@@ -24,6 +25,7 @@ mutable struct Measurement
 	function Measurement()
 		new("unknown",  # name
 			"unknown",  # data_set_name
+			"unknown",  # path_to_raw_data
 			"unknown",  # path_to_raw_data
 			"unknown",  # results_path
 			DateTime(0),  # date: 0000-01-01T00:00:00
@@ -56,18 +58,18 @@ import Base.println
 import Base.print
 import Base.show
 import Base.display
-function println(dataset::Array{Measurement, 1})
+function println(io::IO, dataset::Array{Measurement, 1})
 	if length(dataset) > 0
 		m = dataset[1]
-		println(m.data_set_name)
-		println("contains $(length(dataset)) measurements")
+		println(io, m.data_set_name)
+		println(io, "contains $(length(dataset)) measurements")
 	else
 		"empty dataset"
 	end
 end
-print(dataset::Array{Measurement, 1}) = println(dataset)
-show(dataset::Array{Measurement, 1}) = println(dataset)
-display(dataset::Array{Measurement, 1}) = println(dataset)
+print(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
+show(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
+display(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
 
 ############# Obtaining Information of a Measurement ##########
 # new_data_structure -> Struck data storage structure: no subfolders in raw_data folders
@@ -250,13 +252,14 @@ function Measurement(data_set_name::AbstractString, name::AbstractString; new_da
 	m.data_set_name = data_set_name
 	m.new_data_structure = new_data_structure
 	if m.new_data_structure == true
-		m.path_to_raw_data = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data" )
+		m.path_to_raw_data  = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data" )
+		m.path_to_conv_data = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "conv_data" )
 	else
-		m.path_to_raw_data = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data", m.name )
+		m.path_to_raw_data  = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data",  m.name )
+		m.path_to_conv_data = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "conv_data", m.name )
 	end
 	m.results_path = results_path(m)
 	m.datetime = get_datetime_from_measurement_name(m, new_data_structure=new_data_structure)
-	# m.time = get_time_from_measurement_name(m,new_data_structure=new_data_structure) #v1.0 -> merged date&time -> DateTime()
 	m.motor_pos_r = get_motor_pos_r_from_measurement_name(m, new_data_structure=new_data_structure)
 	m.motor_pos_z = get_motor_pos_z_from_measurement_name(m, new_data_structure=new_data_structure)
 	m.motor_pos_phi = get_motor_pos_phi_from_measurement_name(m, new_data_structure=new_data_structure)

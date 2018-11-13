@@ -135,13 +135,24 @@ end
 end
 
 @userplot Histogramdisplay
-@recipe function f(gdd::Histogramdisplay; nbins=500)
+@recipe function f(gdd::Histogramdisplay; nbins=-1, edges=0:1:0)
 	if !( typeof(gdd.args[1]) <: Union{Array{<:Real, 2}, Array{<:Histogram, 1}})
 		error("First input argument should be subtype of `Union{Array{<:Real, 2}, Array{<:Histogram, 1}`.")
 	end
 	e = gdd.args[1]
 	n_channel = minimum(size(e))
 
+	useedges = edges == 0:1:0 ? false : true
+	usenbins = nbins == -1 ? false : true
+
+	if usenbins & useedges
+		usenbins = false
+	elseif !usenbins & !useedges
+		usenbins = true
+		nbins = 100
+	end
+
+	legend --> false
 	size --> (1920, 1080)
 	xlabel --> "E / keV"
 	ylabel --> "Counts"
@@ -165,15 +176,19 @@ end
 		if typeof(e) <: Array{<:Real, 2}
 			@series begin
 		        subplot := channel_order[ichn]
-				h = fit(Histogram, e[ichn, :], nbins=nbins, closed=:left)
-				label --> "Chn $(ichn)"
+		        if usenbins
+					h = fit(Histogram, e[ichn, :], nbins=nbins, closed=:left)
+				elseif useedges
+					h = fit(Histogram, e[ichn, :], edges, closed=:left)
+				end
+				title --> "Chn $(ichn)"
 		        h
 		    end
 		elseif typeof(e) <: Array{<:Histogram, 1}
 			@series begin
 				h = e[ichn]
 				subplot := channel_order[ichn]
-				label --> "Chn $(ichn)"
+				title --> "Chn $(ichn)"
 				h
 			end
 		end

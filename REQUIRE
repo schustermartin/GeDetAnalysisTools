@@ -13,3 +13,7 @@ Plots
 ParallelProcessingTools
 GeDetPulseShapeAnalysisToolsTmp
 GeDetSpectrumAnalyserTmp
+SIS3316
+CompressedStreams
+DataFrames
+LaTeXStrings
