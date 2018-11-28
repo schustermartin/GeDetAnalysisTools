@@ -1,4 +1,3 @@
-
 mutable struct Measurement
 	name::AbstractString
 	data_set_name::AbstractString

@@ -1,12 +1,13 @@
-function full_chain_standard_calibration(m::Measurement; overwrite=false)::Nothing
+function full_chain_standard_calibration(m::Measurement; overwrite=false, overwrite_init_tdcs::Bool=false)::Nothing
+
+	if overwrite_init_tdcs || !exists(m, "Results/init_tau_decay_constants")
+		write_analysis_result_dataset(m, "init_tau_decay_constants", Float32[ 50 for ichn in eachindex(1:m.detector.n_channels)])
+	    write_analysis_result_dataset(m, "init_tau_decay_constants_err", Float32[ -1 for ichn in eachindex(1:m.detector.n_channels)])
+	end
 
 	if overwrite || !exists(m, "Processed_data/measured_pulse_amplitudes") 
-		tdcs::Array{Float32} = if exists(m, "Results/tau_decay_constants") 
-			read_analysis_result_dataset(m, "tau_decay_constants")
-		else
-			Float32[50 for ichn in 1:m.detector.n_channels]
-		end
-		determine_measured_pulse_amplitudes(m, Float32[50.0 for i in 1:m.detector.n_channels])
+		tdcs = read_analysis_result_dataset(m, "init_tau_decay_constants")
+		determine_measured_pulse_amplitudes(m, tdcs)
 	end
 
 	if overwrite || !exists(m, "Results/core_precalibration_factor") 
@@ -47,8 +48,9 @@ function full_chain_standard_calibration(m::Measurement; overwrite=false)::Nothi
 	end
 	
 	if overwrite || !exists(m, "Results/tau_decay_constants") 
-		tdcs, hists, fit_results = determine_decay_time_constants(m; energy_range=200:3000)
+		tdcs, tdcs_err, hists, fit_results = determine_decay_time_constants(m; energy_range=200:3000)
 		write_analysis_result_dataset(m, "tau_decay_constants", tdcs);
+		write_analysis_result_dataset(m, "tau_decay_constants_err", tdcs_err);
 	else
 		tdcs = read_analysis_result_dataset(m, "tau_decay_constants")
 	end

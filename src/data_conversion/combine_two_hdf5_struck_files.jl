@@ -194,7 +194,8 @@ function combine_two_hdf5_files(fn1::AbstractString, fn2::AbstractString, ofn::A
     return ofn
 end
 
-function two_sis3316_to_hdf5(fn1::AbstractString, fn2::AbstractString; evt_merge_window::AbstractFloat = 100e-9, waveform_format = :none, overwrite = false, chunk_n_events::Int=1000) 
+function two_sis3316_to_hdf5(fn1::AbstractString, fn2::AbstractString; evt_merge_window::AbstractFloat = 100e-9, waveform_format = :none, 
+                                                                        overwrite = false, chunk_n_events::Int=1000, keep_individual_hdf5_files::Bool=false) 
     reg_adc_unit = r"adc1-"
     occursin(reg_adc_unit, fn1) ? nothing : error("filename '$fn1' does not contain 'adc1-'")
     tmpidx = match(reg_adc_unit, fn1).offset
@@ -214,8 +215,83 @@ function two_sis3316_to_hdf5(fn1::AbstractString, fn2::AbstractString; evt_merge
     ofn2 = sis3316_to_hdf5(fn2, evt_merge_window=evt_merge_window, waveform_format=waveform_format, compress=false, overwrite=overwrite, use_true_event_number=true, chunk_n_events=chunk_n_events)
     @info "merge them:"
     combine_two_hdf5_files(ofn1, ofn2, ofn, overwrite=overwrite, chunk_n_events=chunk_n_events)
-    # rm(ofn1)
-    # rm(ofn2)
+    if !keep_individual_hdf5_files
+        rm(ofn1)
+        rm(ofn2)
+    end
     @info "merging done"
     return ofn
+end
+
+function twostrucks_convert_all_data_files_in_raw_data_folder(raw_dir=pwd(); overwrite=false, evt_merge_window::AbstractFloat=100e-9, waveform_format=:integers, 
+                                                                            chunk_n_events::Int=1000, keep_individual_hdf5_files::Bool = false)
+    current_dir = pwd()
+    cd(raw_dir)
+
+    if !isdir("../conv_data") mkdir("../conv_data") end
+
+    all_files = readdir(raw_dir)
+    adc1_files = filter(x -> occursin("adc1", x), all_files)
+    adc2_files = filter(x -> occursin("adc2", x), all_files)
+    fn1_dat_files = String[]
+    fn2_dat_files = String[]
+    for fn1 in adc1_files
+        endswith(fn1, ".bz2") ? tmp_name = fn1[1:end-4] : tmp_name = fn1
+        if !in(tmp_name, fn1_dat_files) push!(fn1_dat_files, tmp_name) end
+    end
+    for fn2 in adc2_files
+        endswith(fn2, ".bz2") ? tmp_name = fn2[1:end-4] : tmp_name = fn2
+        if !in(tmp_name, fn2_dat_files) push!(fn2_dat_files, tmp_name) end
+    end
+    fn1_dat_files = filter(x->endswith(x, ".dat"), fn1_dat_files)
+    fn2_dat_files = filter(x->endswith(x, ".dat"), fn2_dat_files)
+
+    if length(fn1_dat_files) != length(fn2_dat_files)
+        error("Different number of adc1 ($(length(fn1_dat_files))) and adc2 ($(length(fn2_dat_files))) files.")
+    end
+
+    function process_file_idx(i) 
+        cd(raw_dir)
+        ifn1 = fn1_dat_files[i]
+        ifn2 = fn2_dat_files[i]
+        ofn = joinpath("../conv_data", get_conv_data_hdf5_filename(ifn1)) 
+        if !isfile(ofn) || overwrite
+            f1_is_compressed::Bool = false
+            f2_is_compressed::Bool = false
+            if !isfile(ifn1) && isfile(ifn1 * ".bz2")
+                @info "Now on $(myid()): Decompressing file `$(ifn1 * ".bz2")`"
+                f1_is_compressed = true
+                decompress_file(ifn1 * ".bz2", overwrite=true, keep_input_files=true)
+            end
+            if !isfile(ifn2) && isfile(ifn2 * ".bz2")
+                @info "Now on $(myid()): Decompressing file `$(ifn2 * ".bz2")`"
+                f2_is_compressed = true
+                decompress_file(ifn2 * ".bz2", overwrite=true, keep_input_files=true)
+            end   
+
+            @info "Now on $(myid()): converting to $(ofn))"
+            ofn_tmp = two_sis3316_to_hdf5(  ifn1, ifn2,
+                                            evt_merge_window=evt_merge_window,
+                                            waveform_format=waveform_format,
+                                            overwrite=overwrite,
+                                            chunk_n_events=chunk_n_events,
+                                            keep_individual_hdf5_files=keep_individual_hdf5_files)
+            mv(ofn_tmp, ofn, force = true )
+
+            @info "Now on $(myid()): Compression dat files." 
+            if (f1_is_compressed && isfile(ifn1)) rm(ifn1) else compress_file(ifn1, keep_input_files=false) end
+            if (f2_is_compressed && isfile(ifn1)) rm(ifn2) else compress_file(ifn2, keep_input_files=false) end
+
+            @info "Now on $(myid()): Finished with $(ofn)."
+        else
+            @info "Skipping $ifn1. Already converted."
+        end
+    end
+
+    pmap( process_file_idx,  1:length(fn1_dat_files) )
+
+    run(`chmod -R ug+rw ../`)
+
+    cd(current_dir)
+    return nothing
 end

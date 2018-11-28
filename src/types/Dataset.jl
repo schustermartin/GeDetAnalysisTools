@@ -30,11 +30,7 @@ function Base.length(d::Dataset)
 	return length(d.measurements)
 end
 function Base.iterate(d::Dataset, state=1)
- 	if state > length(d)
- 		return nothing
- 	else
- 		return d[state]
- 	end
+ 	iterate(d.measurements, state)
 end
 
 function Base.push!(d::Dataset, m::Measurement)::Nothing

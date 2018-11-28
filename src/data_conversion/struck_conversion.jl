@@ -26,6 +26,24 @@ function sis3316_get_nchunks(ifn::AbstractString)::Int
     return n_chunks
 end
 
+function get_conv_data_hdf5_filename(fn::AbstractString)::String
+    ofn::String = ""
+    if occursin(r"adc1-", fn) 
+        tmpidx = match(r"adc1-", fn).offset
+        ofn = join([fn[1:tmpidx-1],fn[tmpidx+5:end]])
+    end
+    if occursin(r"adc2-", fn) 
+        tmpidx = match(r"adc2-", fn).offset
+        ofn = join([fn[1:tmpidx-1],fn[tmpidx+5:end]])
+    end
+    if endswith(ofn, ".bz2")
+        ofn = "$(ofn[1:end-4][1:first(findlast(".", ofn[1:end-4]))-1]).hdf5"
+    else
+        ofn = "$(ofn[1:first(findlast(".", ofn))-1]).hdf5"
+    end
+    return ofn
+end
+
 function sis3316_to_hdf5(ifn::AbstractString;   evt_merge_window::AbstractFloat = 100e-9, waveform_format = :none, compress=true, overwrite=false, use_true_event_number=false,              
                                                 chunk_n_events::Int=1000) 
     if endswith(ifn, "bz2")

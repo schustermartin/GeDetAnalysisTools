@@ -18,6 +18,7 @@ module GeDetAnalysisTools
     using CompressedStreams
     using DataFrames
     using LaTeXStrings
+    using Distributed
 
     import Plots: @layout
     import Plots: plot, plot!
