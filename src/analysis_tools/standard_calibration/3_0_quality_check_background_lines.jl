@@ -41,15 +41,29 @@ function quality_check(	m::Measurement;	overwrite=false)
 		μ::Float64 = pl
 		coeff_0::Float64 = 0
 		coeff_1::Float64 = 0
-		fitrange = pl - 10:pl + 10
-		fr_core = GeDetSpectrumAnalyserTmp.fit(h_core, fitrange, gauss_plus_first_order_polynom, Float64[scale, σ, μ, coeff_0, coeff_1])
+		# fitrange = pl - 10:pl + 10
+		fitrange = (pl - 10, pl + 10)
+		fitf_core = RadiationSpectra.FitFunction( gauss_plus_first_order_polynom )
+		fitf_core.fitrange = fitrange
+		fitf_core.initial_parameters = Float64[scale, σ, μ, coeff_0, coeff_1]
+		RadiationSpectra.lsqfit!(fitf_core, h_core)
+		# fr_core = GeDetSpectrumAnalyserTmp.fit(h_core, fitrange, gauss_plus_first_order_polynom, Float64[scale, σ, μ, coeff_0, coeff_1])
+
 		scale = maximum_counts_segs
-		fr_segs = GeDetSpectrumAnalyserTmp.fit(h_sumsegs, fitrange, gauss_plus_first_order_polynom, Float64[scale, σ, μ, coeff_0, coeff_1])
-		plot!(fr_segs)
-		plot!(fr_core)
+		fitf_segs = RadiationSpectra.FitFunction( gauss_plus_first_order_polynom )
+		fitf_segs.fitrange = fitrange
+		fitf_segs.initial_parameters = Float64[scale, σ, μ, coeff_0, coeff_1]
+		RadiationSpectra.lsqfit!(fitf_segs, h_sumsegs)
+		# fr_segs = GeDetSpectrumAnalyserTmp.fit(h_sumsegs, fitrange, gauss_plus_first_order_polynom, Float64[scale, σ, μ, coeff_0, coeff_1])
+
+		# plot!(fr_segs)
+		# plot!(fr_core)
+		plot!(fitf_segs)
+		plot!(fitf_core)
 		push!(p_peaks, p)
 		p_fr_result = plot(axis=false, grid=false)
-		pars = fr_core.parameters
+		# pars = fr_core.parameters
+		pars = fitf_core.parameters
 		photon_lines_fit_parameters_core[2:end, ipl] = pars
 
         # df[:FitParameters][1][1] = pars
@@ -63,7 +77,7 @@ function quality_check(	m::Measurement;	overwrite=false)
 		annotate!(0.4, 0.65, "$(round(pars[3], digits=1))")
 		annotate!(0.4, 0.50, "$(round(pars[2], digits=1))")
 		annotate!(0.4, 0.35, "$(round(pars[1], digits=1))")
-		pars = fr_segs.parameters
+		pars = fitf_segs.parameters
 		photon_lines_fit_parameters_sumseg[2:end, ipl] = pars
 
 	# 	df[ipl, 4][:, end]  = pars

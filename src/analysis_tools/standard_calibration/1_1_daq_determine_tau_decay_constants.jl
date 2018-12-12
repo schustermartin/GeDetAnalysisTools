@@ -26,6 +26,8 @@ function determine_decay_time_constants_distributions_with_daq_ss_selection(  m,
     tdc::T = 0
     core::UInt8 = 1
 
+    fitf = RadiationSpectra.FitFunction(  exponential_decay )
+     
     @info "Tau Decay Fitting: $n_total_events events to process"
 
     for (fi, f) in enumerate(inputfiles)
@@ -53,7 +55,10 @@ function determine_decay_time_constants_distributions_with_daq_ss_selection(  m,
                                         baseline::T = mean(T, daq_pulses_evt[1:m.daq.baseline_length, ichn])
                                         dataarr[:] = Float64.(daq_pulses_evt[decay_window_start_index:take_every_n_sample_for_fit:end, ichn] .- baseline) # must be Float64 due LsqFit...
                                         init_params[:] = [dataarr[1], init_decay_rates[ichn]] # must be Float64 due LsqFit...
-                                        tdc = 1f6 * T( GeDetSpectrumAnalyserTmp.LSQFIT( xarr, dataarr, exponential_decay, init_params, estimate_uncertainties=false).parameters[2] ) 
+                                        fitf.initial_parameters = init_params
+                                        RadiationSpectra.lsqfit!(fitf, xarr, dataarr)
+                                        tdc = 1f6 * fitf.parameters[2]
+                                        # tdc = 1f6 * T( GeDetSpectrumAnalyserTmp.LSQFIT( xarr, dataarr, exponential_decay, init_params, estimate_uncertainties=false).parameters[2] ) 
                                         # tdc = 1e6 * LsqFit.curve_fit(exponential_decay, xarr, dataarr, init_params).param[2] 
                                         push!(decay_time_constants_distributions[ichn], tdc )
                                         push!(decay_time_constants_vs_energy[ichn], (core_energy, tdc))
@@ -78,7 +83,10 @@ function determine_decay_time_constants_distributions_with_daq_ss_selection(  m,
                                         baseline::T = mean(T, daq_pulses_evt[1:m.daq.baseline_length, ichn])
                                         dataarr[:] = Float64.(daq_pulses_evt[decay_window_start_index:take_every_n_sample_for_fit:end, ichn] .- baseline) # must be Float64 due LsqFit...
                                         init_params[:] = [dataarr[1], init_decay_rates[ichn]] # must be Float64 due LsqFit...
-                                        tdc = 1f6 * T( GeDetSpectrumAnalyserTmp.LSQFIT( xarr, dataarr, exponential_decay, init_params, estimate_uncertainties=false).parameters[2] ) 
+                                        fitf.initial_parameters = init_params
+                                        RadiationSpectra.lsqfit!(fitf, xarr, dataarr)
+                                        tdc = 1f6 * fitf.parameters[2]
+                                        # tdc = 1f6 * T( GeDetSpectrumAnalyserTmp.LSQFIT( xarr, dataarr, exponential_decay, init_params, estimate_uncertainties=false).parameters[2] ) 
                                         # tdc = 1e6 * LsqFit.curve_fit(exponential_decay, xarr, dataarr, init_params).param[2] 
                                         push!(decay_time_constants_distributions[ichn], tdc )
                                         push!(decay_time_constants_vs_energy[ichn], (core_energy, tdc))

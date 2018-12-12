@@ -95,6 +95,12 @@ function get_datetime_from_measurement_name(m::Measurement; new_data_structure=t
 		df = DateFormat("yyyymmddTHHMMSSZ")
 		dts = match(r"-\d{8}T\d{6}Z.*", files[1]).match
 		dts = dts[2:end-4]
+		if endswith(dts, ".dat")
+			dts = dts[1:end-4]
+		end
+		if endswith(dts, "-raw")
+			dts = dts[1:end-4]
+		end
 		DateTime(dts, df)
 	else
 		df = DateFormat("yyyymmdd")

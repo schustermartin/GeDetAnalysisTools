@@ -11,8 +11,8 @@ LinearAlgebra
 Distributions
 Plots
 ParallelProcessingTools
+RadiationSpectra
 GeDetPulseShapeAnalysisToolsTmp
-GeDetSpectrumAnalyserTmp
 SIS3316
 CompressedStreams
 DataFrames

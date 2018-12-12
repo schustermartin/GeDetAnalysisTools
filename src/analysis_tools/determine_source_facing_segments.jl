@@ -19,23 +19,31 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 	init_fit_parameters = T[ 0.0, 50.0, 0., 0.]
 	f(x::T, par::Array{T, 1})::T = @fastmath par[1] / (sqrt(2 * π * par[2]^2)) * exp(-0.5 * (x^2) / (par[2]^2))  + par[3] + par[4] * x
 	f(x::Array{T, 1}, par::Array{T, 1})::Array{T, 1} = T[f(v, par) for v in x]
-	funcs = [MFunction("Gauss fixed at zero plus first order polynomial", init_fit_parameters, par_names, f) for ichn in 1:n_channel]
 
-	frs = []
+	fit_functions = RadiationSpectra.FitFunction[]
+	for ichn in 1:n_channel
+		fitf = RadiationSpectra.FitFunction( f  )
+		fitf.fitrange = (-10, 10)
+		fitf.init_fit_parameters = init_fit_parameters
+		push!(fit_functions, fitf)
+	end
+	# funcs = [MFunction("Gauss fixed at zero plus first order polynomial", init_fit_parameters, par_names, f) for ichn in 1:n_channel]
+	# frs = []
+ 	# fit_results = GeDetSpectrumAnalyserTmp.Fit[]
 
- 	fit_results = GeDetSpectrumAnalyserTmp.Fit[]
 	σ_core::T = 1.
 	offset_core::T = 0.
 	for ichn in 1:n_channel
-		fit_result = GeDetSpectrumAnalyserTmp.fit(ehists[ichn], -10:10, funcs[ichn].f, funcs[ichn].par, estimate_uncertainties=false)
-		funcs[ichn].par = fit_result.parameters
+		# fit_result = GeDetSpectrumAnalyserTmp.fit(ehists[ichn], -10:10, funcs[ichn].f, funcs[ichn].par, estimate_uncertainties=false)
+		RadiationSpectra.lsqfit!(fit_functions[ichn], ehists[ichn])
+		# funcs[ichn].par = fit_result.parameters
 		if ichn == 1
-			σ_core = abs(fit_result.parameters[2])
-			offset_core = fit_result.parameters[3]
+			σ_core = abs(fit_functions[ichn].parameters[2])
+			offset_core = fit_functions[ichn].parameters[3]
 		end
-		σ = abs(fit_result.parameters[2])
-		scale = fit_result.parameters[1] # scale
-		offset = fit_result.parameters[3]
+		σ = abs(fit_functions[ichn].parameters[2])
+		scale = fit_functions[ichn].parameters[1] # scale
+		offset = fit_functions[ichn].parameters[3]
 		bg_area = 2 * 2σ_core * offset_core 
 		sno = scale / (2 * 2σ * offset)
 		sno_to_core = scale / bg_area
@@ -44,9 +52,9 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 			# info("Channel $(chn):\tσ=$(signif(σ, 2))\t-\tSNO (2σ) = $(sno)")
 			if ichn != 1 push!(source_facing_channels, ichn) end
 		end
-		push!(frs, fit_result)
 	end
 
 	write_analysis_result_dataset(m, "source_facing_channels", source_facing_channels)
-	return source_facing_channels, ehists, funcs, frs
+	# return source_facing_channels, ehists, funcs, frs
+	return source_facing_channels, ehists, fit_functions	
 end

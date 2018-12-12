@@ -1,7 +1,8 @@
 function determine_daq_core_calibration_constant(m::Measurement)
 	daq_core_energies = get_daq_energies(m)[1, :]
 	h = fit(Histogram, daq_core_energies, nbins=10000, closed=:left)
-	c, pcg_hist = GeDetSpectrumAnalyserTmp.determine_calibration_constant_through_peak_ratios(h)
+	c, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h)
+	# c, pcg_hist = GeDetSpectrumAnalyserTmp.determine_calibration_constant_through_peak_ratios(h)
 	return c, pcg_hist
 end
 
@@ -12,8 +13,8 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement)
 		n_events::Int, n_channel::Int = size(daq_core_energies)
 		n_segments::Int = n_channel - 1
 		h_core = fit(Histogram, daq_core_energies[:, 1], nbins=10000, closed=:left)
-		c0_daq, pcg_hist = GeDetSpectrumAnalyserTmp.determine_calibration_constant_through_peak_ratios(h_core)
-		c0_daq, core_peak_fits, core_c0_fit = GeDetSpectrumAnalyserTmp.determine_calibration_constant_through_peak_fitting(h_core, c0_daq)
+		c0_daq, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h_core)
+		c0_daq, core_peak_fits, core_c0_fit = RadiationSpectra.determine_calibration_constant_through_peak_fitting(h_core, c0_daq)
 
 		ratios = Array{T, 2}(undef, size(daq_core_energies, 1), size(daq_core_energies, 2) - 1 )
 		
@@ -58,8 +59,13 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement)
 			cal_peak_idx = findmax(h.weights)[2]
 			init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[cal_peak_idx] ]
 			fitrange = (mp[cal_peak_idx] - 3 * step(h.edges[1])):step(h.edges[1]):(mp[cal_peak_idx] + 3 * step(h.edges[1]))
-	        fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
-	        cal_peak_pos[iseg] = fr.parameters[3]
+			fitf = RadiationSpectra.FitFunction( scaled_cauchy )
+			fitf.init_fit_params = init_fit_params
+			fitf.fitrange = fitrange
+			RadiationSpectra.lsqfit!(fitf, h)
+	        # fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
+	        # cal_peak_pos[iseg] = fr.parameters[3]
+	        cal_peak_pos[iseg] = fitf.parameters[3]
 		end
 
 		# Calibration Matrix

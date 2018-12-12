@@ -8,28 +8,37 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
     c = 1.0
     h0 = fit(Histogram, precal_energies, edges, closed=:left)
 
-    peak_fits = GeDetSpectrumAnalyserTmp.Fit[]
-    for pl in photon_lines
+    peak_fits = RadiationSpectra.FitFunction[ RadiationSpectra.FitFunction( gauss_plus_first_order_polynom  ) for ichn in 1:length(photon_lines) ]
+    # peak_fits = GeDetSpectrumAnalyserTmp.Fit[]
+    for (i, pl) in enumerate(photon_lines)
         line::Float64 = pl 
-        fitrange = (line - 20 ):(line + 20 ) # +- 20 keV
-        first_bin = StatsBase.binindex(h0, first(fitrange))
-        last_bin  = StatsBase.binindex(h0, last(fitrange))
+        # fitrange = (line - 20 ):(line + 20 ) # +- 20 keV
+        fitrange = (line - 20, line + 20)
+        peak_fits[i].fitrange = fitrange
+        first_bin = StatsBase.binindex(h0, fitrange[1])
+        last_bin  = StatsBase.binindex(h0, fitrange[2])
         p0_sigma = 1.0  # 1keV
         p0_scale = (maximum(h0.weights[first_bin:last_bin]) - (h0.weights[first_bin] + h0.weights[last_bin]) / 2) * 2 * p0_sigma
         p0_mean = line
         p0_bg_offset = (h0.weights[first_bin] + h0.weights[last_bin]) / 2
-        p0_bg_slope = (h0.weights[last_bin] - h0.weights[first_bin]) / (last(fitrange) - first(fitrange))
+        p0_bg_slope = (h0.weights[last_bin] - h0.weights[first_bin]) / (fitrange[2] - fitrange[1])
         p0 = Float64[ p0_scale, p0_sigma, p0_mean, p0_bg_offset, p0_bg_slope ]
-        fr = GeDetSpectrumAnalyserTmp.fit(h0, fitrange, gauss_plus_first_order_polynom, p0, σ=1.0, estimate_uncertainties=false)
-        fr.uncertainties = GeDetSpectrumAnalyserTmp.estimate_uncertainties(fr, 1.0)
-        push!(peak_fits, fr)
+        peak_fits[i].initial_parameters = p0
+        RadiationSpectra.lsqfit!(peak_fits[i], h0)
+        # fr = GeDetSpectrumAnalyserTmp.fit(h0, fitrange, gauss_plus_first_order_polynom, p0, σ=1.0, estimate_uncertainties=false)
+        # fr.uncertainties = GeDetSpectrumAnalyserTmp.estimate_uncertainties(fr, 1.0)
+        # push!(peak_fits, fr)
     end
 
     fitted_peak_positions = [ fr.parameters[3] for fr in peak_fits ] ./ c_precal
     fitted_peak_positions_err = [ fr.uncertainties[3] for fr in peak_fits ] ./ c_precal
 
-    c_fit = GeDetSpectrumAnalyserTmp.LSQFIT(photon_lines, fitted_peak_positions, fitted_peak_positions_err, linear_function_fixed_offset_at_zero, [c_precal] )
-    c_fit.uncertainties = GeDetSpectrumAnalyserTmp.estimate_uncertainties(c_fit, 1.0)
+    c_fit = RadiationSpectra.FitFunction( linear_function_fixed_offset_at_zero)
+    c_fit.initial_parameters = [c_precal] 
+    RadiationSpectra.lsqfit!( c_fit, photon_lines, fitted_peak_positions, fitted_peak_positions_err )
+    # c_fit = GeDetSpectrumAnalyserTmp.LSQFIT(photon_lines, fitted_peak_positions, fitted_peak_positions_err, linear_function_fixed_offset_at_zero, [c_precal] )
+    # c_fit.uncertainties = GeDetSpectrumAnalyserTmp.estimate_uncertainties(c_fit, 1.0)
+    # c = inv(c_fit.parameters[1])
     c = inv(c_fit.parameters[1])
     
     if create_plots

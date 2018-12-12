@@ -56,20 +56,28 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
 
     cal_ratio_hists = [ fit(Histogram, ratios[:, iseg], cal_peak_rough_pos[iseg] - 0.05:0.001:cal_peak_rough_pos[iseg] + 0.05, closed=:left ) for iseg in 1:size(ratios, 2)]
     cal_peak_pos = zeros(Float64, n_segments)
-    cal_peak_fits = GeDetSpectrumAnalyserTmp.Fit[]
+    # cal_peak_fits = GeDetSpectrumAnalyserTmp.Fit[]
+    cal_peak_fits = RadiationSpectra.FitFunction[]
+
     plts = []
     for iseg in eachindex(1:n_channel-1)
         h = cal_ratio_hists[iseg]
         mp = (h.edges[1][1:length(h.edges[1])-1] .+ 0.5 * step(h.edges[1]))
         cal_peak_idx = findmax(h.weights)[2]
         init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[cal_peak_idx] ]
-        fitrange = (mp[cal_peak_idx] - 3 * step(h.edges[1])):step(h.edges[1]):(mp[cal_peak_idx] + 3 * step(h.edges[1]))
-        fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
-        push!(cal_peak_fits, fr)
-        cal_peak_pos[iseg] = fr.parameters[3]
+        fitrange = ((mp[cal_peak_idx] - 3 * step(h.edges[1])), (mp[cal_peak_idx] + 3 * step(h.edges[1])))
+        fitf = RadiationSpectra.FitFunction( scaled_cauchy )
+        fitf.initial_parameters = init_fit_params
+        fitf.fitrange = fitrange
+        # fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
+        RadiationSpectra.lsqfit!(fitf, h)
+        push!(cal_peak_fits, fitf)
+        # push!(cal_peak_fits, fr)
+        cal_peak_pos[iseg] = fitf.parameters[3]
+        # cal_peak_pos[iseg] = fr.parameters[3]
         if create_plots
             p = plot(h, st=:step, label="", title="seg$iseg")
-            plot!(p, fr, label="")
+            plot!(p, fitf, label="")
             push!(plts, p)
         end
     end
@@ -99,10 +107,11 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
             end
         end
     end
-    ct_peak_fits = Array{Array{GeDetSpectrumAnalyserTmp.Fit, 1}}([])
+    # ct_peak_fits = Array{Array{GeDetSpectrumAnalyserTmp.Fit, 1}}([])
+    ct_peak_fits = Array{Array{RadiationSpectra.FitFunction, 1}}([])
     for ichn_src in 2:n_channel
         iseg_src = ichn_src - 1
-        tmpfits = Array{GeDetSpectrumAnalyserTmp.Fit, 1}([])
+        tmpfits = Array{RadiationSpectra.FitFunction, 1}([])
         plts = []
         for ichn_tar in 2:n_channel
             iseg_tar = ichn_tar - 1
@@ -112,16 +121,24 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
             ct_peak_pos = mp[ct_peak_idx]
 
             init_fit_params = [ h.weights[ct_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[ct_peak_idx] ]
-            fitrange = (mp[ct_peak_idx] - 3 * step(h.edges[1])):step(h.edges[1]):(mp[ct_peak_idx] + 3 * step(h.edges[1]))
-            fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
-            push!(tmpfits, fr)
-            ct_peak_pos = fr.parameters[3]
+            # fitrange = (mp[ct_peak_idx] - 3 * step(h.edges[1])):step(h.edges[1]):(mp[ct_peak_idx] + 3 * step(h.edges[1]))
+            fitrange = ((mp[ct_peak_idx] - 3 * step(h.edges[1])), (mp[ct_peak_idx] + 3 * step(h.edges[1])))
+            fitf = RadiationSpectra.FitFunction( scaled_cauchy)
+            fitf.fitrange = fitrange
+            fitf.initial_parameters = init_fit_params
+            RadiationSpectra.lsqfit!(fitf, h)
+            # fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
+            push!(tmpfits, fitf)
+            ct_peak_pos = fitf.parameters[3]
+            # push!(tmpfits, fr)
+            # ct_peak_pos = fr.parameters[3]
 
             if ichn_tar != ichn_src
                 c[ichn_src, ichn_tar] = ct_peak_pos * c[1, 1]
                 if create_plots
                     p = plot(h, st=:step, legend=false, title="mpa ratio: seg$(iseg_tar) / core", )
-                    plot!(p, fr)
+                    plot!(p, fitf)
+                    # plot!(p, fr)
                     push!(plts, p)
                 end
             elseif create_plots
