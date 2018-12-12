@@ -24,7 +24,7 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
         p0_bg_slope = (h0.weights[last_bin] - h0.weights[first_bin]) / (fitrange[2] - fitrange[1])
         p0 = Float64[ p0_scale, p0_sigma, p0_mean, p0_bg_offset, p0_bg_slope ]
         peak_fits[i].initial_parameters = p0
-        RadiationSpectra.lsqfit!(peak_fits[i], h0)
+        RadiationSpectra.lsqfit!(peak_fits[i], h0, estimate_uncertainties=true)
         # fr = GeDetSpectrumAnalyserTmp.fit(h0, fitrange, gauss_plus_first_order_polynom, p0, σ=1.0, estimate_uncertainties=false)
         # fr.uncertainties = GeDetSpectrumAnalyserTmp.estimate_uncertainties(fr, 1.0)
         # push!(peak_fits, fr)
