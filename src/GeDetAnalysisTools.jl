@@ -20,6 +20,7 @@ module GeDetAnalysisTools
     using DataFrames
     using LaTeXStrings
     using Distributed
+    using Unitful
 
     import Plots: @layout
     import Plots: plot, plot!
@@ -30,6 +31,7 @@ module GeDetAnalysisTools
 
     const GAT = GeDetAnalysisTools
     export GAT
+    export exists
 
     const USER_DATA_PATH   = ENV["GEDET_USER_DATA_PATH"]   # e.g.: export GEDET_USER_DATA_PATH="/remote/ceph/group/gedet/data/lab"
     const USER_OUTPUT_PATH = ENV["GEDET_USER_OUTPUT_PATH"] # e.g.: export GEDET_USER_OUTPUT_PATH="/remote/ceph/user/l/lhauert/analysis_directory"
@@ -39,7 +41,9 @@ module GeDetAnalysisTools
     include("types/Measurement.jl")
     include("types/Dataset.jl")
     include("types/MFunction.jl")
-
+    
+    include("isotopes/isotopes.jl")
+    
     include("data_conversion/0_data_conversion.jl")
 
     include("hdf5_data/hdf5_data.jl")

@@ -24,18 +24,18 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
         p0_bg_slope = (h0.weights[last_bin] - h0.weights[first_bin]) / (fitrange[2] - fitrange[1])
         p0 = Float64[ p0_scale, p0_sigma, p0_mean, p0_bg_offset, p0_bg_slope ]
         peak_fits[i].initial_parameters = p0
-        RadiationSpectra.lsqfit!(peak_fits[i], h0, estimate_uncertainties=true)
+        RadiationSpectra.lsqfit!(peak_fits[i], h0, estimate_uncertainties=false)
         # fr = GeDetSpectrumAnalyserTmp.fit(h0, fitrange, gauss_plus_first_order_polynom, p0, σ=1.0, estimate_uncertainties=false)
         # fr.uncertainties = GeDetSpectrumAnalyserTmp.estimate_uncertainties(fr, 1.0)
         # push!(peak_fits, fr)
     end
 
     fitted_peak_positions = [ fr.parameters[3] for fr in peak_fits ] ./ c_precal
-    fitted_peak_positions_err = [ fr.uncertainties[3] for fr in peak_fits ] ./ c_precal
+    # fitted_peak_positions_err = [ fr.uncertainties[3] for fr in peak_fits ] ./ c_precal
 
     c_fit = RadiationSpectra.FitFunction( linear_function_fixed_offset_at_zero)
     c_fit.initial_parameters = [c_precal] 
-    RadiationSpectra.lsqfit!( c_fit, photon_lines, fitted_peak_positions, fitted_peak_positions_err )
+    RadiationSpectra.lsqfit!( c_fit, photon_lines, fitted_peak_positions) #, fitted_peak_positions_err )
     # c_fit = GeDetSpectrumAnalyserTmp.LSQFIT(photon_lines, fitted_peak_positions, fitted_peak_positions_err, linear_function_fixed_offset_at_zero, [c_precal] )
     # c_fit.uncertainties = GeDetSpectrumAnalyserTmp.estimate_uncertainties(c_fit, 1.0)
     # c = inv(c_fit.parameters[1])
@@ -55,7 +55,8 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
         end      
         p_fits = plot( peak_fit_plots..., layout=(3,2), size=(1920,1080));
 
-        p_factor_fit = plot(photon_lines, fitted_peak_positions, yerr=fitted_peak_positions_err, st=:scatter, legend=false, xlabel="E / keV", ylabel="MPA / precalibrated")
+        p_factor_fit = plot(photon_lines, fitted_peak_positions, st=:scatter, legend=false, xlabel="E / keV", ylabel="MPA / precalibrated")
+        # p_factor_fit = plot(photon_lines, fitted_peak_positions, yerr=fitted_peak_positions_err, st=:scatter, legend=false, xlabel="E / keV", ylabel="MPA / precalibrated")
         plot!(c_fit)
         l = @layout [a{0.75h}
                             b]

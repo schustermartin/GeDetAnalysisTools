@@ -390,7 +390,8 @@ end
 function gather_absolute_paths_to_hdf5_input_files(m::Measurement)
 	if m.new_data_structure==true
 		# hdf5_data_path = joinpath(USER_DATA_PATH, "$(Dates.year(m.date))", m.data_set_name, "conv_data")
-		hdf5_data_path =m.path_to_raw_data[1:end-8]*"conv_data"
+		# hdf5_data_path = m.path_to_raw_data[1:end-8] * "conv_data"
+		hdf5_data_path = m.path_to_conv_data
 		input_files = readdir(hdf5_data_path)
 		input_files = filter(x -> endswith(x, ".hdf5"), input_files)
 		input_files = filter(x -> startswith(x, m.name), input_files)

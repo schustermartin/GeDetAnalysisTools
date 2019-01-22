@@ -7,6 +7,7 @@ function full_chain_standard_calibration(m::Measurement; overwrite=false, overwr
 
 	if overwrite || !exists(m, "Processed_data/measured_pulse_amplitudes") 
 		tdcs = read_analysis_result_dataset(m, "init_tau_decay_constants")
+		println("Determing measured pulse amplitudes: $(m.name)")
 		determine_measured_pulse_amplitudes(m, tdcs)
 	end
 
@@ -37,13 +38,15 @@ function full_chain_standard_calibration(m::Measurement; overwrite=false, overwr
 
 	if overwrite || !exists(m, "Results/background_photon_lines_fit_parameters_core")
 		quality_check(m)
+		println("Quality check done: $(m.name)")
 	end
-
+	
 	if overwrite || !exists(m, "Processed_data/single_segment_indices") 
 		determine_single_channel_indices(m, c);
 	end
-
+	
 	if overwrite || !exists(m, "Processed_data/tau_decay_constants") 
+		println("Determing individual decay time constants: $(m.name)")
 		determine_individual_decay_time_constants(m, c);
 	end
 	

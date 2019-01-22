@@ -5,7 +5,7 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 	ss_selection_diff::T = 3
 	core::Int = 1
 
-	ehists = [Histogram(-10:0.5:10, :left) for chn in 1:n_channel]
+	ehists = [Histogram(-10:1.0:10, :left) for chn in 1:n_channel]
 
 	for ievt in 1:size(energies, 2)
 		ssidx = get_single_segment_channel_index_abs(energies[:, ievt], ss_selection_diff)
@@ -24,7 +24,7 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 	for ichn in 1:n_channel
 		fitf = RadiationSpectra.FitFunction( f  )
 		fitf.fitrange = (-10, 10)
-		fitf.init_fit_parameters = init_fit_parameters
+		fitf.initial_parameters = init_fit_parameters
 		push!(fit_functions, fitf)
 	end
 	# funcs = [MFunction("Gauss fixed at zero plus first order polynomial", init_fit_parameters, par_names, f) for ichn in 1:n_channel]
@@ -50,11 +50,19 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 		# println(ichn, "\t", sno_to_core)
 		if σ < 2.5 && σ > 0.4 && sno_to_core > sno_limit && scale >= min_amplitude
 			# info("Channel $(chn):\tσ=$(signif(σ, 2))\t-\tSNO (2σ) = $(sno)")
-			if ichn != 1 push!(source_facing_channels, ichn) end
+			if ichn >= 1 push!(source_facing_channels, ichn) end
 		end
 	end
 
-	write_analysis_result_dataset(m, "source_facing_channels", source_facing_channels)
+	write_analysis_result_dataset(m, "source_facing_channels_$(peakenergy)kev", source_facing_channels)
+	println("source_facing_channels_$(peakenergy)kev")
+	plt = histogramdisplay(ehists, m.detector, size=(2000,1200))
+	for i in eachindex(fit_functions)
+		c = in(i, source_facing_channels) ? "red" : "black"
+		plot!(plt.subplots[m.detector.channel_display_order[i]], fit_functions[i], lc=c, lw=2)
+	end
+	savefig(m, plt, "4_0_source_facing_segment_determination", "source_facing_segment_determination_$(peakenergy)keV", fmt=:png)
+	
 	# return source_facing_channels, ehists, funcs, frs
 	return source_facing_channels, ehists, fit_functions	
 end

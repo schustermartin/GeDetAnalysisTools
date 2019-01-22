@@ -88,9 +88,9 @@ end
 
 		layout --> if (length(gdd.args) > 1 && typeof(gdd.args[2]) <: Detector)
 			@layout [ 	chn1{0.16666w} chn20{0.16666w} 
-						chn2 chn3 chn4 chn5 chn6 chn7
-						chn8 chn9 chn10 chn11 chn12 chn13
-						chn14 chn15 chn16 chn17 chn18 chn19]
+			chn2 chn3 chn4 chn5 chn6 chn7
+			chn8 chn9 chn10 chn11 chn12 chn13
+			chn14 chn15 chn16 chn17 chn18 chn19]
 		else
 			(n_channel)
 		end
@@ -99,9 +99,9 @@ end
 		else
 			Int[chn for chn in 1:n_channel]
 		end
-
+	
 		y_max = 1
-
+		
 		for ichn in 1:n_channel
 			if typeof(e) <: Array{<:Real, 2}
 				@series begin

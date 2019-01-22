@@ -125,7 +125,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     core::UInt8 = 1
     fitted_tau_decay_constants::Array{Float64, 1} = Float64[ 0 for chn in 1:n_channel ]
-    hists = Histogram[ Histogram(1:0.5:150, :left) for chn in 1:n_channel ]
+    hists = Histogram[ Histogram(10:0.5:150, :left) for chn in 1:n_channel ]
 
     for (fi, f) in enumerate(inputfiles)
         h5f = h5open(f, "r+")
@@ -187,14 +187,15 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
             push!(fit_results, fitf)
             # push!(fit_results, fr)
         catch err
+            h = hists[ichn]
             fitf.fitrange = (0, 100)
-            fitf.initial_parameters = Float64[1, 1, 0]
-            RadiationSpectra.lsqfit!(fitf, h)
+            @show maximum(h.weights)
+            fitf.initial_parameters = Float64[maximum(h.weights), 1, 50]
+            RadiationSpectra.lsqfit!(fitf, h, estimate_uncertainties = true)
             # fr = GeDetSpectrumAnalyserTmp.Fit(scaled_cauchy, 0.0:100.0, Float64[1,1,0], Float64[-1,-1,-1], Float64[1,1,0], missing)
             push!(fit_results, fitf)
         end
     end
-
     if create_plots
         det = m.detector
         p = histogramdisplay(hists, det)
