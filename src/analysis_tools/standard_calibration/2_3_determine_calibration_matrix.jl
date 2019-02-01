@@ -38,7 +38,7 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
     for iseg in 1:n_channel-1
         h = ratio_hists[iseg]
         mp = (h.edges[1][1:length(h.edges[1])-1] .+ 0.5 * step(h.edges[1]))
-        ct_peak_idx = findmax(h.weights)[2]
+        ct_peak_idx = findmax(h.weights[1:StatsBase.binindex(h, 0.2)])[2]
         ct_peak_pos = mp[ct_peak_idx]
         start_idx = StatsBase.binindex(h, ct_peak_pos + 0.25)
         cal_peak_idx = findmax(h.weights[start_idx:end])[2] - 1

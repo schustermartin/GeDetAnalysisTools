@@ -1,13 +1,13 @@
-function determine_daq_core_calibration_constant(m::Measurement)
+function determine_daq_core_calibration_constant(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533])
 	daq_core_energies = get_daq_energies(m)[1, :]
 	h = fit(Histogram, daq_core_energies, nbins=10000, closed=:left)
-	c, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h)
+	c, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h, photon_lines )
 	# c, pcg_hist = GeDetSpectrumAnalyserTmp.determine_calibration_constant_through_peak_ratios(h)
 	return c, pcg_hist
 end
 
 function determine_calibration_matrix_with_daq_energies(m::Measurement)
-	@fastmath @inbounds begin 
+	@fastmath @inbounds begin
 		daq_core_energies = transpose(get_daq_energies(m))
 		T = Float32
 		n_events::Int, n_channel::Int = size(daq_core_energies)
@@ -17,11 +17,11 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement)
 		c0_daq, core_peak_fits, core_c0_fit = RadiationSpectra.determine_calibration_constant_through_peak_fitting(h_core, c0_daq)
 
 		ratios = Array{T, 2}(undef, size(daq_core_energies, 1), size(daq_core_energies, 2) - 1 )
-		
+
 		daq_core_energies *= c0_daq
 
 		for i in eachindex(daq_core_energies)
-			if daq_core_energies[i] == 0 
+			if daq_core_energies[i] == 0
 				daq_core_energies[i] = 1
 			end
 		end
@@ -89,7 +89,7 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement)
 			        	iseg_tar = ichn_tar - 1
 			        	if ichn_tar == ichn_src continue end
 			        	push!(ct_ratios[iseg_src][iseg_tar], ratios[iseg_tar, i])
-			        end        			
+			        end
         		end
                 # if ss_ratio_limits[1] <= ratios[i, iseg_src] <= ss_ratio_limits[2] push!(ct_ratios, ratios[i, iseg_tar]) end
 	        end
@@ -118,7 +118,7 @@ end
 
 The dimensions of `energies` should be (channel, events).
 
-`c` should be the already converted cross-talk and calibration matrix. 
+`c` should be the already converted cross-talk and calibration matrix.
 """
 function calibrate_energies(energies::Array{<:AbstractFloat, 2}, c::Array{<:Real, 2})::Array{Real, 2}
 	T = eltype(energies)

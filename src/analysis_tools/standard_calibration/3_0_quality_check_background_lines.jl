@@ -1,4 +1,4 @@
-function quality_check(	m::Measurement;	overwrite=false)
+function quality_check(	m::Measurement;	overwrite=false, photon_lines=[])
 	energies = get_energies(m)
 	n_channel::Int, n_events::Int = size(energies)
 

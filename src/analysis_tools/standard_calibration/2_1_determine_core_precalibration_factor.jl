@@ -1,8 +1,8 @@
-function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], overwrite=false, 
-    min_npeaks=10, nbins=6000, peak_threshold=10., peak_sigma=4., averWindow=3, deconIterations=3, alpha=0.005, min_nbins=50, create_plots=true)
+function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], overwrite=false,
+    min_npeaks=10, nbins=6000, peak_threshold=10., peak_sigma=4., averWindow=3, deconIterations=3, alpha=0.005, min_nbins=50, create_plots=true, α=0.01)
 
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
- 
+
     core::Int = 1
 
     mpas::Array{Float32, 1} = get_measured_pulse_amplitudes(m)[1, :]
@@ -19,7 +19,9 @@ function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_l
         peak_threshold = 0.9*peak_threshold
     end
 
-    c0_pre, h_pcf = RadiationSpectra.determine_calibration_constant_through_peak_ratios(fPositionX, photon_lines, min_nbins=min_nbins)
+    @show npeaks
+
+    c0_pre, h_pcf = RadiationSpectra.determine_calibration_constant_through_peak_ratios(fPositionX, photon_lines, min_nbins=min_nbins, α=α )
 
     if create_plots
         p_core  = plot(h_core, st=:step, size=(1200,600), label="core mpa spectrum (uncalibrated)");
@@ -38,4 +40,3 @@ function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_l
 
     return c0_pre, h_core, h_peaks, h_pcf
 end
-

@@ -2,14 +2,14 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 	source_facing_channels = Int[]
 	energies::Array{T, 2} = get_energies(m)
 	n_channel = size(energies, 1)
-	ss_selection_diff::T = 3
+	ss_selection_diff::T = 20
 	core::Int = 1
 
 	ehists = [Histogram(-10:1.0:10, :left) for chn in 1:n_channel]
 
 	for ievt in 1:size(energies, 2)
 		ssidx = get_single_segment_channel_index_abs(energies[:, ievt], ss_selection_diff)
-		if ssidx > 0 
+		if ssidx > 0
 			push!(ehists[core],  energies[core, ievt]  - peakenergy )
 			push!(ehists[ssidx], energies[ssidx, ievt] - peakenergy )
 		end
@@ -44,7 +44,7 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 		σ = abs(fit_functions[ichn].parameters[2])
 		scale = fit_functions[ichn].parameters[1] # scale
 		offset = fit_functions[ichn].parameters[3]
-		bg_area = 2 * 2σ_core * offset_core 
+		bg_area = 2 * 2σ_core * offset_core
 		sno = scale / (2 * 2σ * offset)
 		sno_to_core = scale / bg_area
 		# println(ichn, "\t", sno_to_core)
@@ -62,7 +62,7 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 		plot!(plt.subplots[m.detector.channel_display_order[i]], fit_functions[i], lc=c, lw=2)
 	end
 	savefig(m, plt, "4_0_source_facing_segment_determination", "source_facing_segment_determination_$(peakenergy)keV", fmt=:png)
-	
+
 	# return source_facing_channels, ehists, funcs, frs
-	return source_facing_channels, ehists, fit_functions	
+	return source_facing_channels, ehists, fit_functions
 end
