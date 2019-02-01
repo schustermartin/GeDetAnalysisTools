@@ -1,10 +1,11 @@
 mutable struct Dataset
 	name::AbstractString
 	measurements::Array{Measurement, 1}
+	plotcolor::Union{String, Int, Symbol}
 
-	Dataset() = new("unnamed", Measurement[])
+	Dataset() = new("unnamed", Measurement[], :red)
 
-	Dataset(name::AbstractString, measurements::Array{Measurement, 1}) = new(name, measurements)
+	Dataset(name::AbstractString, measurements::Array{Measurement, 1}) = new(name, measurements, :red)
 end
 
 function Dataset(name::AbstractString, data_dir_name::AbstractString)::Dataset
