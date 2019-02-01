@@ -189,14 +189,19 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
         catch err
             h = hists[ichn]
             fitf.fitrange = (0, 100)
-            @show maximum(h.weights)
+            # @show maximum(h.weights)
             fitf.initial_parameters = Float64[maximum(h.weights), 1, 50]
-            RadiationSpectra.lsqfit!(fitf, h, estimate_uncertainties = true)
+            try
+                RadiationSpectra.lsqfit!(fitf, h, estimate_uncertainties = true)
+            catch err
+                RadiationSpectra.lsqfit!(fitf, h, estimate_uncertainties = false)
+                fitf.uncertainties = eltype(fitf.uncertainties)[-1, -1, -1, -1]
+            end
             # fr = GeDetSpectrumAnalyserTmp.Fit(scaled_cauchy, 0.0:100.0, Float64[1,1,0], Float64[-1,-1,-1], Float64[1,1,0], missing)
             push!(fit_results, fitf)
         end
     end
-    if create_plots
+    if create_plots 
         det = m.detector
         p = histogramdisplay(hists, det)
         for (i, fr) in enumerate(fit_results)
@@ -217,6 +222,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
         plot!(tdcs_init, yerr=tdcs_init_err, label="Init τ's", st=:scatter)
         savefig(m, p, "2_5_tau_decay_constants", "scatter_tau_decay_constants", fmt=:png); p = 0;
     end
+
 
     return tdcs, tdcs_err, hists, fit_results
 end
