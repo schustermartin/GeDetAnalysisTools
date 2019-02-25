@@ -23,6 +23,7 @@ module GeDetAnalysisTools
     using LegendDataTypes
     using LegendHDF5IO
     using LegendTextIO
+    using DSP
 
     import Plots: @layout, grid
     import Plots: plot, plot!
@@ -58,5 +59,7 @@ module GeDetAnalysisTools
     
     include("plot_recipes/plot_recipes.jl")
     include("plot_recipes/plotting.jl")
+    
+    include("filters/electronics_filter.jl")
 
 end # module
