@@ -7,6 +7,9 @@ Distributions
 GeDetPulseShapeAnalysisToolsTmp
 HDF5
 LaTeXStrings
+LegendDataTypes
+LegendHDF5IO
+LegendTextIO
 ParallelProcessingTools
 Plots
 ProgressMeter

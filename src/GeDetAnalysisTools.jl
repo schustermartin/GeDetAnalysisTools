@@ -13,7 +13,6 @@ module GeDetAnalysisTools
     using Distributions
     using ParallelProcessingTools
     using GeDetPulseShapeAnalysisToolsTmp
-    # using GeDetSpectrumAnalyserTmp
     using RadiationSpectra 
     using SIS3316
     using CompressedStreams
