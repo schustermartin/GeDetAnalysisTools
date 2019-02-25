@@ -1,16 +1,16 @@
-<h3>electronics_filter(x; Segment, p, Samplingtime)</h3>
+<h2><code>electronics_filter(x; Segment, p, Samplingtime)</code></h2>
 
-<h5>Required input:</h5>
+<h4>Required input:</h4>
 
-- <strong>x</strong> -> your simulated pulse
+- <code>x</code> -> your simulated pulse
 
 
-<h5>Optional input:</h5>
+<h4>Optional input:</h4>
 
-- <strong>Segment</strong>::String       -> Options: Core (default), Seg1, Seg2, Seg3, Seg4
+- <code>Segment::String</code>       -> Options: Core (default), Seg1, Seg2, Seg3, Seg4
 
 This takes the best parameters found so far for the chosen response function
 
-- <strong>p</strong>::NamedTuple         -> If you want to use your own parameters.
+- <code>p::NamedTuple</code>         -> If you want to use your own parameters.
 
-- <strong>Samplingtime</strong>::Float64 -> Default 4e-9
+- <code>Samplingtime::Float64</code> -> Default 4e-9
