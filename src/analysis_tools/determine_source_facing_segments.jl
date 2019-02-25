@@ -1,4 +1,9 @@
-function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_limit::T=T(0.05); min_amplitude::T=T(100.0)) where {T<:Real} ##::Array{Int, 1}
+function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_limit::T=T(0.05); min_amplitude::T=T(100.0), overwrite = false) where {T<:Real} ##::Array{Int, 1}
+	if exists(m, "Results/source_facing_channels_$(peakenergy)keV") && !overwrite
+		println("`Results/source_facing_channels_$(peakenergy)keV` already determined for $(m.name). Skipping...")
+		return nothing
+	end
+	
 	source_facing_channels = Int[]
 	energies::Array{T, 2} = get_energies(m)
 	n_channel = size(energies, 1)
@@ -15,16 +20,21 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 		end
 	end
 
-	par_names = ["Scale", "σ", "Offset", "Slope"]
-	init_fit_parameters = T[ 0.0, 50.0, 0., 0.]
-	f(x::T, par::Array{T, 1})::T = @fastmath par[1] / (sqrt(2 * π * par[2]^2)) * exp(-0.5 * (x^2) / (par[2]^2))  + par[3] + par[4] * x
+	par_names = ["Scale", "σ", "Offset"] #, "Slope"]
+	init_fit_parameters = T[ min_amplitude, 1.0, 0.0] #, 0.]
+	@fastmath function f(x::T, par::Array{T, 1})::T
+		if par[1] < 0 || par[2] < 0.6 || par[2] > 5.0 || par[3] < 0 return NaN end
+		return par[1] / (sqrt(2 * π * par[2]^2)) * exp(-0.5 * (x^2) / (par[2]^2)) + par[3]# + par[4] * x
+	end
 	f(x::Array{T, 1}, par::Array{T, 1})::Array{T, 1} = T[f(v, par) for v in x]
 
 	fit_functions = RadiationSpectra.FitFunction[]
 	for ichn in 1:n_channel
 		fitf = RadiationSpectra.FitFunction( f  )
-		fitf.fitrange = (-10, 10)
+		fitf.fitrange = (-5, 5)
 		fitf.initial_parameters = init_fit_parameters
+		fitf.initial_parameters[3] = mean(ehists[ichn].weights[1:4])
+
 		push!(fit_functions, fitf)
 	end
 	# funcs = [MFunction("Gauss fixed at zero plus first order polynomial", init_fit_parameters, par_names, f) for ichn in 1:n_channel]
@@ -48,14 +58,14 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 		sno = scale / (2 * 2σ * offset)
 		sno_to_core = scale / bg_area
 		# println(ichn, "\t", sno_to_core)
-		if σ < 2.5 && σ > 0.4 && sno_to_core > sno_limit && scale >= min_amplitude
+		if σ < 3.0 && σ > 0.4 && sno_to_core > sno_limit && scale >= min_amplitude
 			# info("Channel $(chn):\tσ=$(signif(σ, 2))\t-\tSNO (2σ) = $(sno)")
 			if ichn >= 1 push!(source_facing_channels, ichn) end
 		end
 	end
 
-	write_analysis_result_dataset(m, "source_facing_channels_$(peakenergy)kev", source_facing_channels)
-	println("source_facing_channels_$(peakenergy)kev")
+	write_analysis_result_dataset(m, "source_facing_channels_$(peakenergy)keV", source_facing_channels)
+	println("created result dataset: `source_facing_channels_$(peakenergy)keV`")
 	plt = histogramdisplay(ehists, m.detector, size=(2000,1200))
 	for i in eachindex(fit_functions)
 		c = in(i, source_facing_channels) ? "red" : "black"

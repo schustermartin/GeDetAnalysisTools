@@ -5,6 +5,11 @@ end
 	abs(ce - se) < d ? true : false
 end
 
+"""
+	get_single_segment_channel_index_rel(energies::Array{T, 1}, d::T)::UInt8 where {T<:Real}
+
+d::T = allowed relative difference in unit one.
+"""
 @fastmath function get_single_segment_channel_index_rel(energies::Array{T, 1}, d::T)::UInt8 where {T<:Real}
 	@inbounds begin
 		idx::UInt8 = 0

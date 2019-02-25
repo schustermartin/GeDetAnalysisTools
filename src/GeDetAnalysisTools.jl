@@ -21,13 +21,18 @@ module GeDetAnalysisTools
     using LaTeXStrings
     using Distributed
     using Unitful
+    using LegendDataTypes
+    using LegendHDF5IO
+    using LegendTextIO
 
-    import Plots: @layout
+    import Plots: @layout, grid
     import Plots: plot, plot!
     import Plots: xlims, xlims!, ylims, ylims!
     import Plots: annotate!
     import Plots: png, pdf, eps
+    import Plots: Measures
 
+    import LegendHDF5IO: readdata, writedata
 
     const GAT = GeDetAnalysisTools
     export GAT
