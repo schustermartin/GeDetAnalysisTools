@@ -3,7 +3,7 @@
 One has to create two environement variables:
 
 - `GEDET_USER_DATA_PATH`: Path to the data files. (e.g.: `export GEDET_USER_DATA_PATH="/remote/ceph/group/gedet/data/lab"`) 
-Inside this path their must be the correct data structure (NOT_YET_DOCUMENTET).
+Inside this path their must be the correct data structure (NOT_YET_DOCUMENTED).
 - `GEDET_USER_OUTPUT_PATH` Path to where output should be produced. (e.g.: `export GEDET_USER_OUTPUT_PATH="/remote/ceph/user/<u>/<username>/analysis_directory"`)
 
 ## Example usage of data file handling:
