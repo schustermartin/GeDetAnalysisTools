@@ -4,6 +4,7 @@ CompressedStreams
 DataFrames
 Dates
 Distributions
+DSP
 GeDetPulseShapeAnalysisToolsTmp
 HDF5
 LaTeXStrings
@@ -19,4 +20,3 @@ SIS3316
 StaticArrays
 StatsBase
 Unitful
-DSP
