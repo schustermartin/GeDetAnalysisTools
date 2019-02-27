@@ -62,5 +62,6 @@ module GeDetAnalysisTools
     include("plot_recipes/plotting.jl")
     
     include("filters/electronics_filter.jl")
+    include("filters/read_parameters.jl")
 
 end # module
