@@ -25,7 +25,6 @@ module GeDetAnalysisTools
     using LegendTextIO
     using DSP
     using JSON
-    using Pkg
 
     import Plots: @layout, grid
     import Plots: plot, plot!
