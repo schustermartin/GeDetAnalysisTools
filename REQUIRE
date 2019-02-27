@@ -17,6 +17,7 @@ ProgressMeter
 RadiationSpectra
 RecipesBase
 SIS3316
+SpecialFunctions
 StaticArrays
 StatsBase
 Unitful

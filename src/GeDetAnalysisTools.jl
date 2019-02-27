@@ -2,28 +2,29 @@ __precompile__()
 
 module GeDetAnalysisTools
 
-    using Dates
-    using HDF5
-    using StatsBase
-    using RecipesBase
-    using Statistics
-    using StaticArrays
-    using ProgressMeter
-    using LinearAlgebra
-    using Distributions
-    using ParallelProcessingTools
-    using GeDetPulseShapeAnalysisToolsTmp
-    using RadiationSpectra 
-    using SIS3316
     using CompressedStreams
     using DataFrames
-    using LaTeXStrings
+    using Dates
     using Distributed
-    using Unitful
+    using Distributions
+    using DSP
+    using GeDetPulseShapeAnalysisToolsTmp
+    using HDF5
+    using LaTeXStrings
     using LegendDataTypes
     using LegendHDF5IO
     using LegendTextIO
-    using DSP
+    using LinearAlgebra
+    using ParallelProcessingTools
+    using ProgressMeter
+    using RadiationSpectra 
+    using RecipesBase
+    using SIS3316
+    using SpecialFunctions
+    using StaticArrays
+    using Statistics
+    using StatsBase
+    using Unitful
 
     import Plots: @layout, grid
     import Plots: plot, plot!
@@ -33,6 +34,10 @@ module GeDetAnalysisTools
     import Plots: Measures
 
     import LegendHDF5IO: readdata, writedata
+
+    import Base: show, display, print, println
+    import Base: sort, sort!
+    import Base: getindex, size, length
 
     const GAT = GeDetAnalysisTools
     export GAT

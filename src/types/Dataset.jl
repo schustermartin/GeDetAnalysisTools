@@ -1,6 +1,6 @@
-mutable struct Dataset
+mutable struct Dataset <: AbstractVector{Measurement}
 	name::AbstractString
-	measurements::Array{Measurement, 1}
+	measurements::Vector{Measurement}
 	plotcolor::Union{String, Int, Symbol}
 
 	Dataset() = new("unnamed", Measurement[], :red)
@@ -21,17 +21,14 @@ function Dataset(name::AbstractString, data_dir_name::AbstractString, detector::
 	Dataset(name, ms)
 end
 
-function Base.getindex(d::Dataset, i::Int)::Measurement
+function getindex(d::Dataset, i::Int)::Measurement
 	return d.measurements[i]
 end
-function Base.size(d::Dataset)
+function size(d::Dataset)
 	return size(d.measurements)
 end
-function Base.length(d::Dataset)
+function length(d::Dataset)
 	return length(d.measurements)
-end
-function Base.iterate(d::Dataset, state=1)
- 	iterate(d.measurements, state)
 end
 
 function Base.push!(d::Dataset, m::Measurement)::Nothing
@@ -39,15 +36,35 @@ function Base.push!(d::Dataset, m::Measurement)::Nothing
 end
 
 
-function Base.println(io::IO, d::Dataset)
+function println(io::IO, d::Dataset)
 	println(io, d.name)
 	println(io, "Contains $(length(d.measurements)) measurements")
 	for (i, m) in enumerate(d.measurements)
 		println(i, "\t", m.motor_pos_r, "\t", m.motor_pos_phi, "\t", m.motor_pos_z)
 	end
 end
-function Base.print(io::IO, d::Dataset)
+function print(io::IO, d::Dataset)
 	print(io, d.name, " - Contains $(length(d.measurements)) measurements")
 end
-Base.display(io::IO, d::Dataset) = println(io, d)
-Base.show(io::IO, d::Dataset) = println(io, d)
+display(io::IO, d::Dataset) = println(io, d)
+show(io::IO, d::Dataset) = println(io, d)
+
+function show(io::IO, ::MIME"text/plain", d::Dataset)
+    show(io, d)
+end
+
+function sort(d::Dataset; kwargs...)::Dataset
+	ms_sorted = sort(d.measurements; kwargs...)
+	new_ds = Dataset()
+	new_ds.name = d.name
+	new_ds.measurements = ms_sorted
+	@show new_ds[1].motor_pos_phi
+	new_ds.plotcolor = d.plotcolor
+	return new_ds
+end
+
+function sort!(d::Dataset; kwargs...)::Nothing
+	ms_sorted = sort(d.measurements; kwargs...)
+	d.measurements = ms_sorted
+	return nothing
+end
