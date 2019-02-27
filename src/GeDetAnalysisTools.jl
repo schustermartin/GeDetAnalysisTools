@@ -14,6 +14,7 @@ module GeDetAnalysisTools
     using LegendDataTypes
     using LegendHDF5IO
     using LegendTextIO
+<<<<<<< HEAD
     using LinearAlgebra
     using ParallelProcessingTools
     using ProgressMeter
@@ -25,6 +26,10 @@ module GeDetAnalysisTools
     using Statistics
     using StatsBase
     using Unitful
+=======
+    using DSP
+    using JSON
+>>>>>>> ee75b43707463d95af43866ad13690db0b958f05
 
     import Plots: @layout, grid
     import Plots: plot, plot!
@@ -66,5 +71,6 @@ module GeDetAnalysisTools
     include("plot_recipes/plotting.jl")
     
     include("filters/electronics_filter.jl")
+    include("filters/read_parameters.jl")
 
 end # module
