@@ -18,18 +18,50 @@ function linear_polynom(x::Array{T, 1}, p::Array{T, 1})::Array{T, 1} where {T}
 	return T[ linear_polynom(v, p) for v in x ]
 end
 
+function flat_offset(x::T, p::Array{T, 1})::T where {T}
+	offset::T = p[1]
+	return @fastmath offset
+end
+function flat_offset(x::Array{T, 1}, p::Array{T, 1})::Array{T, 1} where {T}
+	return T[ flat_offset(v, p) for v in x ]
+end
+
+
 function gauss_plus_first_order_polynom(x::T, p::Array{T, 1})::T where {T}
     scale::T = p[1]
     σ::T     = p[2]
     μ::T     = p[3]
     cp0::T   = p[4] 
     cp1::T   = p[5]
-    return @fastmath scale * exp(-0.5 * ((x - μ)^2) / (σ^2)) / (sqrt(2 * π * σ^2)) + cp0 + cp1 * (x - μ)
+    if scale < 0 || σ <= 0 
+        return -T(Inf)
+    else
+        return @fastmath scale * exp(-0.5 * ((x - μ)^2) / (σ^2)) / (sqrt(2 * π * σ^2)) + cp0 + cp1 * (x - μ)
+    end
 end
 
 function gauss_plus_first_order_polynom(x::Array{T, 1}, p::Array{T, 1})::Array{T, 1} where {T}
     return T[ gauss_plus_first_order_polynom(v, p) for v in x ]
 end
+
+
+function gauss_plus_fixed_first_order_polynom(x::T, p::Array{T, 1}; offset = 0.0, slope = 0.0)::T where {T}
+    scale::T = p[1]
+    σ::T     = p[2]
+    μ::T     = p[3]
+    cp0::T   = offset
+    cp1::T   = slope
+    if scale < 0 || σ < 0 
+        return 0
+    else
+        return @fastmath scale * exp(-0.5 * ((x - μ)^2) / (σ^2)) / (sqrt(2 * π * σ^2)) + cp0 + cp1 * (x - μ)
+    end
+end
+function gauss_plus_fixed_first_order_polynom(x::Array{T, 1}, p::Array{T, 1}; offset = 0.0, slope = 0.0)::Array{T, 1} where {T}
+    return T[ gauss_plus_first_order_polynom(v, p, offset = offset, slope = slope) for v in x ]
+end
+
+
 
 
 function exponential_decay(x::T, p::Array{T, 1})::T where {T}

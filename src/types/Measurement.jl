@@ -20,6 +20,11 @@ mutable struct Measurement
 	temperature::Float64
 	pressure::Float64
 	new_data_structure::Bool
+	r::Function
+	phi_side::Function
+	phi_top::Function
+	z::Function
+	plotcolor::Union{String, Int, Symbol}
 
 	function Measurement()
 		new("unknown",  # name
@@ -42,7 +47,12 @@ mutable struct Measurement
 			-1,         # daq_livetime
 			NaN64,      # temperature
 			NaN64,      # pressure
-			true
+			true,
+			identity,
+			identity,
+			identity,
+			identity,
+			:red,
 			)
 	end
 
@@ -69,6 +79,12 @@ end
 print(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
 show(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
 display(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
+
+
+r(m::Measurement)   = m.r(m.motor_pos_r)
+phi_side(m::Measurement) = m.phi_side(m.motor_pos_phi)
+phi_top(m::Measurement) = m.phi_top(m.motor_pos_phi)
+z(m::Measurement)   = m.z(m.motor_pos_z)
 
 ############# Obtaining Information of a Measurement ##########
 # new_data_structure -> Struck data storage structure: no subfolders in raw_data folders

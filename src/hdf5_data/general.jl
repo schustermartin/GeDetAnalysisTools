@@ -1,3 +1,12 @@
+function view_file_structure(fn::AbstractString)::Nothing
+	run(Cmd(`h5ls -r "$fn"`))
+	nothing
+end
+function view_file_structure(m::Measurement; file_number::Int = 1)::Nothing
+	run(Cmd(`h5ls -r "$(gather_absolute_paths_to_hdf5_input_files(m)[file_number])"`))
+	nothing
+end
+
 function get_number_of_events(fn::AbstractString)::Int
 	h = h5open(fn, "r+")
 	g = g_open(h,"DAQ_Data")

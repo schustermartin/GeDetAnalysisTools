@@ -35,10 +35,12 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
 
     c_fit = RadiationSpectra.FitFunction( linear_function_fixed_offset_at_zero)
     c_fit.initial_parameters = [c_precal]
-    RadiationSpectra.lsqfit!( c_fit, photon_lines, fitted_peak_positions) #, fitted_peak_positions_err )
+    RadiationSpectra.lsqfit!( c_fit, photon_lines, fitted_peak_positions, estimate_uncertainties=false) #, fitted_peak_positions_err )
     # c_fit = GeDetSpectrumAnalyserTmp.LSQFIT(photon_lines, fitted_peak_positions, fitted_peak_positions_err, linear_function_fixed_offset_at_zero, [c_precal] )
     # c_fit.uncertainties = GeDetSpectrumAnalyserTmp.estimate_uncertainties(c_fit, 1.0)
     # c = inv(c_fit.parameters[1])
+    c_fit.uncertainties = zeros(Float64, length(c_fit.parameters))
+    c_fit.uncertainties .= -1
     c = inv(c_fit.parameters[1])
 
     if create_plots
