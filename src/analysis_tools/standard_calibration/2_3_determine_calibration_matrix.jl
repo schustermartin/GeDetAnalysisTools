@@ -42,6 +42,10 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
         ct_peak_pos = mp[ct_peak_idx]
         start_idx = StatsBase.binindex(h, ct_peak_pos + 0.25)
         cal_peak_idx = findmax(h.weights[start_idx:end])[2] - 1
+        # if iseg == 4 ## <- modify for distorted pulses
+        #     start_idx = StatsBase.binindex(h, ct_peak_pos + 0.6)
+        #     cal_peak_idx = findmax(h.weights[start_idx:end])[2] - 1
+        # end
         cal_peak_rough_pos[iseg] = mp[start_idx + cal_peak_idx]
         if create_plots
             p = plot(h, yscale=:log10, st=:step, label="", title="mpa seg$(iseg) / mpa core", xlims=[-0.1, cal_peak_rough_pos[iseg] > 1.1 ? cal_peak_rough_pos[iseg] * 1.1 : 1.1], legend=false)
@@ -93,7 +97,7 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
 
     # Crosstralk Values
     ratios = transpose(ratios)
-    ct_ratio_hists = Array{Array{<:Histogram, 1}}([ [Histogram(-0.3:0.001:0.3, :left) for i in eachindex(1:n_segments)] for j in eachindex(1:n_segments) ])
+    ct_ratio_hists = Array{Array{<:Histogram, 1}}([ [Histogram(-0.3:0.001:0.3, :left) for i in eachindex(1:n_segments)] for j in eachindex(1:n_segments) ]) ## <- modify for distorted pulses
     for ichn_src in 2:n_channel
         iseg_src = ichn_src - 1
         ss_ratio_limits::Tuple{T, T} = cal_peak_pos[iseg_src] - 0.03, cal_peak_pos[iseg_src] + 0.03 # ss: single segment
@@ -122,7 +126,7 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
 
             init_fit_params = [ h.weights[ct_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[ct_peak_idx] ]
             # fitrange = (mp[ct_peak_idx] - 3 * step(h.edges[1])):step(h.edges[1]):(mp[ct_peak_idx] + 3 * step(h.edges[1]))
-            fitrange = ((mp[ct_peak_idx] - 3 * step(h.edges[1])), (mp[ct_peak_idx] + 3 * step(h.edges[1])))
+            fitrange = ((mp[ct_peak_idx] - 3 * step(h.edges[1])), (mp[ct_peak_idx] + 3 * step(h.edges[1])))## <- modify for distorted pulses
             fitf = RadiationSpectra.FitFunction( scaled_cauchy)
             fitf.fitrange = fitrange
             fitf.initial_parameters = init_fit_params
