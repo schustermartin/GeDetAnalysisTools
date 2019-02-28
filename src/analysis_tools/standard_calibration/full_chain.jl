@@ -57,7 +57,7 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 		tdcs, tdcs_err, hists, fit_results = determine_decay_time_constants(m; energy_range=200:3000)
 		write_analysis_result_dataset(m, "tau_decay_constants", tdcs);
 		write_analysis_result_dataset(m, "tau_decay_constants_err", tdcs_err);
-	else
+	elseif fit_individual_decay_time_constants
 		tdcs = read_analysis_result_dataset(m, "tau_decay_constants")
 	end
 
