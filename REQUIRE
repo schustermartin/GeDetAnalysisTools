@@ -12,6 +12,7 @@ LaTeXStrings
 LegendDataTypes
 LegendHDF5IO
 LegendTextIO
+Measures
 ParallelProcessingTools
 Plots
 ProgressMeter
