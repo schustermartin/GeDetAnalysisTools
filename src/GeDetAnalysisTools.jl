@@ -16,6 +16,7 @@ module GeDetAnalysisTools
     using LegendHDF5IO
     using LegendTextIO
     using LinearAlgebra
+    using Measures
     using ParallelProcessingTools
     using ProgressMeter
     using RadiationSpectra 
@@ -32,7 +33,6 @@ module GeDetAnalysisTools
     import Plots: xlims, xlims!, ylims, ylims!
     import Plots: annotate!
     import Plots: png, pdf, eps
-    import Plots: Measures
 
     import LegendHDF5IO: readdata, writedata
 
