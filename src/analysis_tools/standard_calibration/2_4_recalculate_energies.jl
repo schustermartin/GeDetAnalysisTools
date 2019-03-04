@@ -30,7 +30,7 @@ function recalculate_energies(m::Measurement, c::Array{<:Real, 2}; create_plots=
                     chunk_mpas::Array{T, 2} = d_measured_pulse_amplitudes[:, evt_range]
                     chunk_energies::Array{T, 2} = Array{T, 2}(undef, n_channel, length(evt_range))
                     for i in eachindex(1:length(evt_range))
-                        chunk_energies[:, i] = c_transpose * chunk_mpas[:, i] 
+                        chunk_energies[:, i] = c_transpose * chunk_mpas[:, i]
                         if create_plots
                             push!(h_seg_sum, sum(chunk_energies[2:end, i]))
                         end
@@ -74,7 +74,7 @@ function recalculate_energies(m::Measurement, c::Array{<:Real, 2}; create_plots=
         pfull = plot(p, plts..., layout= (@layout [a{0.5h}; b c d e f g]), size=(1920,1080))
         savefig(m, pfull, "2_4_recalculated_energies", "core_and_sum_segment_energy_spectrum", fmt=:png); p = 0;
     end
- 
+
     return nothing
 end
 

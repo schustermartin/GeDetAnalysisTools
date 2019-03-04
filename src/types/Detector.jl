@@ -54,7 +54,7 @@ function SUSIE()
     susie.chn_idx_neighbour_top = [ 19, 19, 19, 1, 2, 3, 4, 5, 6, 13, 14, 15, 16, 17, 18, 19, 19, 19, -1] .+ 1
     susie.chn_idx_neighbour_bottom = [ 4, 5, 6, 7, 8, 9, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15, -1 ] .+ 1
 
-    function layout_func() 
+    function layout_func()
       return @layout [ chn1 chn20 info{0.66666666667w}
                        grid(3, 6){0.75h} ]
                         # chn2 chn3 chn4 chn5 chn6 chn7
@@ -72,6 +72,11 @@ function segBEGe()
     s3.name = "segBEGe"
     s3.n_channels = 5
     s3.channel_display_order = [1,4,5,6,3]
+    # s3.channel_display_order = [1,2,3,4,5]
     s3.channel_display_layout = [3,2]
+    function layout_func()
+        return @layout grid(3,2)
+    end
+    s3.channel_plot_layout = layout_func
     return s3
 end
