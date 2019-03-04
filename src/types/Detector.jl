@@ -4,10 +4,10 @@ mutable struct Detector
   n_channels::Int
   channel_display_order::Array{Int}  # channel display order
   channel_display_layout::Array{Int} # channel display layout
-  chn_idx_neighbour_left::Array{Int}
-  chn_idx_neighbour_right::Array{Int}
-  chn_idx_neighbour_top::Array{Int}
-  chn_idx_neighbour_bottom::Array{Int}
+  chn_idx_neighbour_left::Array
+  chn_idx_neighbour_right::Array
+  chn_idx_neighbour_top::Array
+  chn_idx_neighbour_bottom::Array
   crystal_radius::Float64
   crystal_length::Float64
   channel_plot_layout::Function
@@ -31,9 +31,9 @@ function SIEGFRIED_3()
             # chn14 chn15 chn16 chn17 chn18 chn19]
 
     s3.channel_display_layout = [4,6]
-    s3.chn_idx_neighbour_left = [ 18, 1, 2, 15, 4, 5, 12, 7, 8, 3, 16, 17, 6, 13, 14, 9, 10, 11 ] .+ 1
-    s3.chn_idx_neighbour_right = [ 2, 3, 16, 5, 6, 13, 8, 9, 10, 11, 12, 7, 14, 15, 4, 17, 18, 1] .+ 1
-    s3.chn_idx_neighbour_top = [ -1, -1, -1, 1, 2, 3, 4, 5, 6, 13, 14, 15, 16, 17, 18, -1, -1, -1 ] .+ 1
+    s3.chn_idx_neighbour_left =   [ 18, 1, 2, 15, 4, 5, 12, 7, 8, 3, 16, 17, 6, 13, 14, 9, 10, 11 ] .+ 1
+    s3.chn_idx_neighbour_right =  [ 2, 3, 16, 5, 6, 13, 8, 9, 10, 11, 12, 7, 14, 15, 4, 17, 18, 1] .+ 1
+    s3.chn_idx_neighbour_top =    [ -1, -1, -1, 1, 2, 3, 4, 5, 6, 13, 14, 15, 16, 17, 18, -1, -1, -1 ] .+ 1
     s3.chn_idx_neighbour_bottom = [ 4, 5, 6, 7, 8, 9, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15 ] .+ 1
     return s3
 end
@@ -49,10 +49,10 @@ function SUSIE()
     susie.channel_display_order[1] = 1
     susie.channel_display_order[20] = 2
     susie.channel_display_layout = [4, 6]
-    susie.chn_idx_neighbour_left = [ 18, 1, 2, 15, 4, 5, 12, 7, 8, 3, 16, 17, 6, 13, 14, 9, 10, 11, -1 ] .+ 1
-    susie.chn_idx_neighbour_right = [ 2, 3, 16, 5, 6, 13, 8, 9, 10, 11, 12, 7, 14, 15, 4, 17, 18, 1, -1] .+ 1
-    susie.chn_idx_neighbour_top = [ 19, 19, 19, 1, 2, 3, 4, 5, 6, 13, 14, 15, 16, 17, 18, 19, 19, 19, -1] .+ 1
-    susie.chn_idx_neighbour_bottom = [ 4, 5, 6, 7, 8, 9, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15, -1 ] .+ 1
+    susie.chn_idx_neighbour_left =   [ missing, 3, 4, 17, 6, 7, 14, 9, 10, 11, 12, 13, 8, 15, 16, 5, 18, 19, 1, missing ] 
+    susie.chn_idx_neighbour_right =  [ missing, 19, 2, 3, 16, 5, 6, 13, 8, 9, 10, 11, 12, 7, 14, 15, 4, 17, 18, missing ] 
+    susie.chn_idx_neighbour_top =    [ missing, 5, 6, 7, 8, 9, 10, 20, 20, 20, 20, 20, 20, 11, 12, 13, 14, 15, 16, missing] 
+    susie.chn_idx_neighbour_bottom = [ missing, missing, missing, missing, 2, 3, 4, 5, 6, 7, 14, 15, 16, 17, 18, 19, missing, missing, missing, [8, 9, 10, 11, 12, 13]] 
 
     function layout_func() 
       return @layout [ chn1 chn20 info{0.66666666667w}
