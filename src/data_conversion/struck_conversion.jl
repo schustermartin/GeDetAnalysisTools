@@ -137,7 +137,7 @@ function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samp
 
     #dirty hardcode but works for the moment
     n_max_events = -1 #from 300000
-    start_n_events = 1000000
+    start_n_events = 10000000
     daq_n_channels = n_channel
     daq_n_samples = n_samples_per_channel
     if daq_n_samples == 0
