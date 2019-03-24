@@ -6,16 +6,17 @@ function determine_daq_core_calibration_constant(m::Measurement; photon_lines=[6
 	return c, pcg_hist
 end
 
-function determine_calibration_matrix_with_daq_energies(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533])
+function determine_calibration_matrix_with_daq_energies(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], nbins = 10000)
 	@fastmath @inbounds begin
 		daq_core_energies = transpose(get_daq_energies(m))
 		T = Float32
 		n_events::Int, n_channel::Int = size(daq_core_energies)
 		n_segments::Int = n_channel - 1
-		h_core = fit(Histogram, daq_core_energies[:, 1], nbins=10000, closed=:left)
+		h_core = fit(Histogram, daq_core_energies[:, 1], nbins=nbins, closed=:left)
 		@info photon_lines
-		c0_daq, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h_core, photon_lines )
-		c0_daq, core_peak_fits, core_c0_fit = RadiationSpectra.determine_calibration_constant_through_peak_fitting(h_core, c0_daq)
+		c0_daq, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h_core, photon_lines, min_n_peaks = 10, threshold = 10.0, α = 0.01, σ = 2.0 )
+		@info c0_daq
+		c0_daq, core_peak_fits, core_c0_fit = RadiationSpectra.determine_calibration_constant_through_peak_fitting(h_core, photon_lines, c0_daq)
 
 		ratios = Array{T, 2}(undef, size(daq_core_energies, 1), size(daq_core_energies, 2) - 1 )
 
@@ -59,9 +60,9 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement; photon_l
 			mp = (h.edges[1][1:length(h.edges[1])-1] .+ 0.5 * step(h.edges[1]))
 			cal_peak_idx = findmax(h.weights)[2]
 			init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[cal_peak_idx] ]
-			fitrange = (mp[cal_peak_idx] - 3 * step(h.edges[1])):step(h.edges[1]):(mp[cal_peak_idx] + 3 * step(h.edges[1]))
+			fitrange = (mp[cal_peak_idx] - 3 * step(h.edges[1])), (mp[cal_peak_idx] + 3 * step(h.edges[1]))
 			fitf = RadiationSpectra.FitFunction( scaled_cauchy )
-			fitf.init_fit_params = init_fit_params
+			fitf.initial_parameters = init_fit_params
 			fitf.fitrange = fitrange
 			RadiationSpectra.lsqfit!(fitf, h)
 	        # fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
@@ -146,8 +147,8 @@ function calibrate_energies(energies::Array{<:Real, 2}, c::Array{<:Real, 2}, T::
 	return calibrate_energies(T.(energies), c)
 end
 
-function get_quick_calibrated_daq_energies(m::Measurement, T::Type=Float32)::Array{T, 2}
-	c = determine_calibration_matrix_with_daq_energies(m)
+function get_quick_calibrated_daq_energies(m::Measurement, T::Type=Float32; photon_lines = [609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], c_pre = 1.0)::Array{T, 2}
+	c = determine_calibration_matrix_with_daq_energies(m, photon_lines, c_pre)
 	daq_energies = get_daq_energies(m)
 	return calibrate_energies(daq_energies, c, T)
 end

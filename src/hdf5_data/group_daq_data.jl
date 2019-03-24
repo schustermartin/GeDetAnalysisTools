@@ -23,6 +23,31 @@ function get_daq_energies(m::Measurement)::Array{<:Real,2}
 	end
 	return e
 end
+function get_daq_times(fn::AbstractString)::Array{<:Real,2}
+	h = h5open(fn, "r+")
+	g = g_open(h,"DAQ_Data")
+	d = d_open(g,"daq_time")
+	daq_times = read(d)
+	close(h)
+	return daq_times
+end
+function get_daq_times(m::Measurement)::Array{<:Real,2}
+	inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+	n_events::Int = get_number_of_events(m)
+	n_channel::Int = get_number_of_channel(m)
+	e1 = get_daq_times(inputfiles[1])
+	T = eltype(e1)
+	e = Array{T, 2}(undef, size(e1, 1), n_events)
+	last_idx::Int = size(e1, 2)
+	e[:, 1:last_idx] = e1
+	@inbounds for i in 2:length(inputfiles)
+		en = get_daq_times(inputfiles[i])
+		n_new_events::Int = size(en, 2)
+		e[:, last_idx+1:last_idx+n_new_events] = en
+		last_idx += n_new_events
+	end
+	return e
+end
 
 function get_daq_energy_spectrum(fn::AbstractString, channel::Int = 1; nbins::Int = 10000)::Histogram
 	daq_energies = get_daq_energies(fn)

@@ -6,10 +6,10 @@ function quality_check(	m::Measurement;	overwrite=false, photon_lines=[])
 					Energy = Float64[],
 					Type = Symbol[]	)
 
-	push!(df, ["Pb214",  351.932, :BackgroundPhotonLine ])
-	push!(df, ["Bi214",  609.312, :BackgroundPhotonLine ])
+	# push!(df, ["Pb214",  351.932, :BackgroundPhotonLine ])
+	# push!(df, ["Bi214",  609.312, :BackgroundPhotonLine ])
 	push!(df, ["K40",   1460.830, :BackgroundPhotonLine ])
-	push!(df, ["Bi214", 1764.494, :BackgroundPhotonLine ])
+	# push!(df, ["Bi214", 1764.494, :BackgroundPhotonLine ])
 	push!(df, ["Tl208", 2614.533, :BackgroundPhotonLine ])
 	photon_lines::Vector{Float64} = [e for e in df[:Energy]]
 
