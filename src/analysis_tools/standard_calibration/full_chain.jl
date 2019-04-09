@@ -1,21 +1,31 @@
 function full_chain_standard_calibration(	m::Measurement; overwrite=false, overwrite_init_tdcs::Bool=false,
+											skip_dmpa = false,
 											precal_nbins::Int = 6000, precal_photon_lines = [175.5, 609.312, 668, 785., 911.204, 1120.287, 1460.830, 1764.494, 2614.533],
-											cal_photon_lines = [609.312, 1460.830], α = 0.005, min_npeaks = 10, peak_sigma = 3.0, 
+											peak_threshold = 30.,
+											cal_photon_lines = [609.312, 1460.830], α = 0.005, min_npeaks = 10, peak_sigma = 3.0,
 											fit_individual_decay_time_constants = false)::Nothing
+
+	if exists(m, "Results/tau_decay_constants")
+		tdcs = read_analysis_result_dataset(m, "tau_decay_constants")
+		tdcs_err = read_analysis_result_dataset(m, "tau_decay_constants")
+		write_analysis_result_dataset(m, "init_tau_decay_constants", tdcs)
+	    write_analysis_result_dataset(m, "init_tau_decay_constants_err", tdcs_err)
+		println("using fitted tau decay times.")
+	end
 
 	if overwrite_init_tdcs || !exists(m, "Results/init_tau_decay_constants")
 		write_analysis_result_dataset(m, "init_tau_decay_constants", Float32[ 50 for ichn in eachindex(1:m.detector.n_channels)])
 	    write_analysis_result_dataset(m, "init_tau_decay_constants_err", Float32[ -1 for ichn in eachindex(1:m.detector.n_channels)])
 	end
 
-	if overwrite || !exists(m, "Processed_data/measured_pulse_amplitudes")
+	if (overwrite || !exists(m, "Processed_data/measured_pulse_amplitudes")) && !skip_dmpa
 		tdcs = read_analysis_result_dataset(m, "init_tau_decay_constants")
 		println("Determing measured pulse amplitudes: $(m.name)")
 		determine_measured_pulse_amplitudes(m, tdcs)
 	end
 
 	if overwrite || !exists(m, "Results/core_precalibration_factor")
-		c0_pre, h_core, h_peaks, h_pcf = determine_core_precalibration_factor_with_mpas(m, nbins = precal_nbins, photon_lines = precal_photon_lines, α = α, min_npeaks = min_npeaks, peak_sigma = peak_sigma );
+		c0_pre, h_core, h_peaks, h_pcf = determine_core_precalibration_factor_with_mpas(m, nbins = precal_nbins, photon_lines = precal_photon_lines, α = α, min_npeaks = min_npeaks, peak_sigma = peak_sigma, peak_threshold = peak_threshold );
 		write_analysis_result_dataset(m, "core_precalibration_factor", c0_pre);
 	else
 		c0_pre = read_analysis_result_dataset(m, "core_precalibration_factor");

@@ -1,7 +1,9 @@
-function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], overwrite=false,
-    min_npeaks=10, nbins=6000, peak_threshold=10., peak_sigma=4., averWindow=3, deconIterations=3, alpha=0.005, min_nbins=50, create_plots=true, α=0.01)
 
-    inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+
+function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], overwrite=false,
+    min_npeaks=10, nbins=6000, peak_threshold=10., peak_sigma=4., averWindow=3, deconIterations=3, alpha=0.005, min_nbins=50, create_plots=true, α=0.01, inputfiles = missing)
+
+    ismissing(inputfiles) ? inputfiles = gather_absolute_paths_to_hdf5_input_files(m) : nothing
 
     core::Int = 1
 

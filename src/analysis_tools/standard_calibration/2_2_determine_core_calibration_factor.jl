@@ -1,5 +1,14 @@
-function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::Real; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], edges=0:1:3000, create_plots=true)
-    inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+function determine_core_calibration_factor_with_mpas(d::Dataset, c_precal::Real; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], edges=0:1:3000, create_plots=true)
+    inputfiles::Vector{AbstractString}=[]
+    for m in d
+        push!(inputfiles,gather_absolute_paths_to_hdf5_input_files(m))
+    end
+    return determine_core_calibration_factor_with_mpas(d[1], c_precal, photon_lines=photon_lines, edges=edges, create_plots = create_plots, inputfiles=inputfiles)
+end
+
+function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::Real; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], edges=0:1:3000, create_plots=true, inputfiles::Union{Vector{AbstractString},Missing} = missing)
+
+    ismissing(inputfiles) ? inputfiles = gather_absolute_paths_to_hdf5_input_files(m) : nothing
     core::Int = 1
 
     precal_energies::Array{Float32, 1} = c_precal .* get_measured_pulse_amplitudes(m)[1, :]
@@ -18,6 +27,7 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
         first_bin = StatsBase.binindex(h0, fitrange[1])
         last_bin  = StatsBase.binindex(h0, fitrange[2])
         p0_sigma = 1.0  # 1keV
+        p0_sigma = line/700.
         p0_scale = (maximum(h0.weights[first_bin:last_bin]) - (h0.weights[first_bin] + h0.weights[last_bin]) / 2) * 2 * p0_sigma
         p0_mean = line
         p0_bg_offset = (h0.weights[first_bin] + h0.weights[last_bin]) / 2
