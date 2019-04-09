@@ -60,7 +60,7 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 
 	if (overwrite || !exists(m, "Processed_data/tau_decay_constants")) && fit_individual_decay_time_constants
 		println("Determing individual decay time constants: $(m.name)")
-		determine_individual_decay_time_constants(m, c);
+		determine_individual_decay_time_constants(m);
 	end
 
 	if (overwrite || !exists(m, "Results/tau_decay_constants")) && fit_individual_decay_time_constants

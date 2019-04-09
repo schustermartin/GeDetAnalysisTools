@@ -1,10 +1,5 @@
 function get_daq_energies(fn::AbstractString)::Array{<:Real,2}
-	h = h5open(fn, "r+")
-	g = g_open(h,"DAQ_Data")
-	d = d_open(g,"daq_energies")
-	daq_energies = read(d)
-	close(h)
-	return daq_energies
+	return h5read(fn, "DAQ_Data/daq_energies")
 end
 function get_daq_energies(m::Measurement)::Array{<:Real,2}
 	inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
@@ -17,6 +12,27 @@ function get_daq_energies(m::Measurement)::Array{<:Real,2}
 	e[:, 1:last_idx] = e1
 	@inbounds for i in 2:length(inputfiles)
 		en = get_daq_energies(inputfiles[i])
+		n_new_events::Int = size(en, 2)
+		e[:, last_idx+1:last_idx+n_new_events] = en
+		last_idx += n_new_events
+	end
+	return e
+end
+
+function get_daq_times(fn::AbstractString)
+	return h5read(fn, "DAQ_Data/daq_time")
+end
+function get_daq_times(m::Measurement)::Array{<:Real,2}
+	inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+	n_events::Int = get_number_of_events(m)
+	n_channel::Int = get_number_of_channel(m)
+	e1 = get_daq_times(inputfiles[1])
+	T = eltype(e1)
+	e = Array{T, 2}(undef, size(e1, 1), n_events)
+	last_idx::Int = size(e1, 2)
+	e[:, 1:last_idx] = e1
+	@inbounds for i in 2:length(inputfiles)
+		en = get_daq_times(inputfiles[i])
 		n_new_events::Int = size(en, 2)
 		e[:, last_idx+1:last_idx+n_new_events] = en
 		last_idx += n_new_events
@@ -49,13 +65,47 @@ end
 
 function get_daq_pulse(fn::AbstractString, event_index::Int)::AbstractArray{<:Real, 2}
 	h = h5open(fn, "r+")
-	g = g_open(h,"DAQ_Data")
-	d = d_open(g,"daq_pulses")
-	daq_pulse = d[:, :, event_index][:, :] 
+	try
+		g = g_open(h,"DAQ_Data")
+		d = d_open(g,"daq_pulses")
+		daq_pulse = d[:, :, event_index][:, :] 
+	catch err
+		close(h)
+		error(err)
+	end
 	close(h)
 	return daq_pulse
 end
 function get_daq_pulse(m::Measurement, event_index::Int, file_number::Int=1)::AbstractArray{<:Real, 2}
 	inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     return get_daq_pulse(inputfiles[file_number], event_index)
+end
+
+function get_daq_livetime(fn::AbstractString; cut = 0.1)::AbstractFloat
+	times = get_daq_times(fn)
+	ΔT = if length(size(times)) == 2
+		diff(times[1, :])
+	elseif length(size(times)) == 1
+		diff(times[:])
+	else
+		error("Strange dimensions of time array.")
+	end
+	# ΔT = diff(get_daq_times(fn)[:])
+	T = eltype(ΔT)
+	daqtime::T = 0
+	cut::T = T(cut)
+	for δ in ΔT
+		if δ < cut
+			daqtime += δ
+		end
+	end
+	return daqtime
+end
+function get_daq_livetime(m::Measurement; cut = 0.1)::AbstractFloat
+	inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+	t = 0
+	for fn in inputfiles
+		t += get_daq_livetime(fn, cut = cut)
+	end
+	return t
 end

@@ -151,13 +151,37 @@ end
 	size --> (1920, 1080)
 	xlabel --> "E / keV"
 	ylabel --> "Counts"
-	seriestype := :step
+	if !(eltype(e) <: Histogram{<:Real, 2})
+		seriestype --> :step
+	end
 
+	m_arg_idx = findfirst( GAT.Measurement .== typeof.(gdd.args))
+	m = !isnothing(m_arg_idx) ? gdd.args[m_arg_idx] : missing
 	det_arg_idx = findfirst( GAT.Detector .== typeof.(gdd.args))
-	detector = !isnothing(det_arg_idx) ? gdd.args[det_arg_idx] : m.detector
+	detector = if !isnothing(det_arg_idx) 
+		gdd.args[det_arg_idx]
+	elseif !ismissing(m)
+		m.detector
+	else
+		missing		
+	end
 	channel_order = !ismissing(detector) ? detector.channel_display_order : Int[chn for chn in 1:n_channel]
-	try layout --> detector.channel_plot_layout() catch err layout --> (n_channel) end
+	try 
+		layout --> detector.channel_plot_layout() 
+	catch err 
+		layout --> (n_channel) 
+	end
+	
 
+	if !ismissing(detector) && detector.info_plot_index > 0
+		@series begin
+			subplot := detector.info_plot_index
+			legend --> false
+			grid --> false
+			foreground_color_subplot --> :white
+			[]
+		end
+	end
 	for ichn in 1:n_channel
 		if typeof(e) <: Array{<:Real, 2}
 			@series begin

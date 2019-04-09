@@ -11,9 +11,10 @@ mutable struct Detector
   crystal_radius::Float64
   crystal_length::Float64
   channel_plot_layout::Function
+  info_plot_index::Int
 
   function Detector()
-    new("noname", 2, [1,2], [1,2], [], [], [], [], 0, 0, identity)
+    new("noname", 2, [1,2], [1,2], [], [], [], [], 0, 0, identity, -1)
   end
 end
 
@@ -35,6 +36,7 @@ function SIEGFRIED_3()
     s3.chn_idx_neighbour_right =  [ 2, 3, 16, 5, 6, 13, 8, 9, 10, 11, 12, 7, 14, 15, 4, 17, 18, 1] .+ 1
     s3.chn_idx_neighbour_top =    [ -1, -1, -1, 1, 2, 3, 4, 5, 6, 13, 14, 15, 16, 17, 18, -1, -1, -1 ] .+ 1
     s3.chn_idx_neighbour_bottom = [ 4, 5, 6, 7, 8, 9, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15 ] .+ 1
+    s3.info_plot_index = 3
     return s3
 end
 
@@ -53,6 +55,7 @@ function SUSIE()
     susie.chn_idx_neighbour_right =  [ missing, 19, 2, 3, 16, 5, 6, 13, 8, 9, 10, 11, 12, 7, 14, 15, 4, 17, 18, missing ] 
     susie.chn_idx_neighbour_top =    [ missing, 5, 6, 7, 8, 9, 10, 20, 20, 20, 20, 20, 20, 11, 12, 13, 14, 15, 16, missing] 
     susie.chn_idx_neighbour_bottom = [ missing, missing, missing, missing, 2, 3, 4, 5, 6, 7, 14, 15, 16, 17, 18, 19, missing, missing, missing, [8, 9, 10, 11, 12, 13]] 
+    susie.info_plot_index = 3
 
     function layout_func()
       return @layout [ chn1 chn20 info{0.66666666667w}

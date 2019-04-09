@@ -80,6 +80,31 @@ print(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
 show(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
 display(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
 
+function Measurement(path::AbstractString)::Measurement
+	m::Measurement = Measurement()
+	m.data_set_name = dirname(path)
+	m.new_data_structure = true
+	m.path_to_raw_data  = joinpath(path, "raw_data")
+	m.path_to_conv_data = joinpath(path, "conv_data")
+	m.results_path = joinpath(path, "results")
+	compressed_data_files = filter(fn -> endswith(fn, "dat.bz2"), readdir(m.path_to_raw_data))
+	m.name = get_measurement_name_from_compressed_data_file_name(compressed_data_files[1])
+	if endswith(m.name, "-adc1") m.name = m.name[1:end-5] end
+
+	m.datetime = get_datetime_from_measurement_name(m)
+	m.motor_pos_r = get_motor_pos_r_from_measurement_name(m)
+	m.motor_pos_z = get_motor_pos_z_from_measurement_name(m)
+	m.motor_pos_phi = get_motor_pos_phi_from_measurement_name(m)
+	m.side_source = get_side_source_from_measurement_name(m)
+	m.top_source = get_top_source_from_measurement_name(m)
+	m.outside_source = get_outside_source_from_measurement_name(m)
+	m.measurement_duration = get_measurement_duration_from_measurement_names(m)
+	m.temperature = get_temperature_from_measurement_name(m)
+	m.pressure = get_pressure_from_measurement_name(m)
+
+	return m
+end
+
 
 r(m::Measurement)   = m.r(m.motor_pos_r)
 phi_side(m::Measurement) = m.phi_side(m.motor_pos_phi)
