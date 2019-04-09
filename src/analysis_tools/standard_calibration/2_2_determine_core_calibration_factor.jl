@@ -52,6 +52,7 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
             last_bin  = StatsBase.binindex(h0, last(fitrange))
             pfp = plot( h0.edges[1][first_bin]:step(h0.edges[1]):h0.edges[1][last_bin], h0.weights[first_bin:last_bin], st=:step, label="Data (precalibrated)" )
             plot!(peak_fits[ipl], label="LSQ Fit")
+            plot!(peak_fits[ipl], label="LSQ Fit - Init", use_initial_parameters = true)
             plot!([pl], st=:vline, color=:green, label="Photon line")
             push!(peak_fit_plots, pfp)
         end
