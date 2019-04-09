@@ -1,10 +1,5 @@
 function get_energies(fn::AbstractString)::Array{<:Real,2}
-    h = h5open(fn, "r+")
-    g = g_open(h,"Processed_data")
-    d = d_open(g,"energies")
-    energies = read(d)
-    close(h)
-    return energies
+    return h5read(fn, "Processed_data/energies")
 end
 function get_energies(m::Measurement)::Array{<:Real,2}
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
@@ -23,12 +18,7 @@ function get_energies(m::Measurement)::Array{<:Real,2}
 end
 
 function get_measured_pulse_amplitudes(fn::AbstractString)::Array{<:Real,2}
-    h = h5open(fn, "r+")
-    g = g_open(h,"Processed_data")
-    d = d_open(g,"measured_pulse_amplitudes")
-    mpas = read(d)
-    close(h)
-    return mpas
+    return h5read(fn, "Processed_data/measured_pulse_amplitudes")
 end
 function get_measured_pulse_amplitudes(m::Measurement)::Array{<:Real,2}
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)

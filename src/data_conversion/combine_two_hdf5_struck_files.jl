@@ -1,5 +1,54 @@
+function get_matching_index(dt::Vector{T}, dt1::T, dt2::T, dt3::T; acceptance::T = 5e-8)::Int where {T <: AbstractFloat}
+    @fastmath @inbounds for i in 1:length(dt) - 2
+        rms::T = abs(dt[i] - dt1) + abs(dt[i + 1] - dt2) + abs(dt[i + 2] - dt3)
+        if rms <= acceptance
+            return i  
+        end
+    end
+    return -1
+end
+
+function merge(t1::Vector{T}, t2::Vector{T}) where {T <: AbstractFloat}
+    t1 .-= t1[1]
+    t2 .-= t2[1]
+    Δt1 = diff(t1)
+    Δt2 = diff(t2)
+
+    f1_evt_indices = Int[]
+    f2_evt_indices = Int[]
+
+    j = -1
+    i = 1
+    no_match_in_this_chunk = false
+    while j < 0 && !no_match_in_this_chunk
+        j = get_matching_index(Δt2, Δt1[i], Δt1[i + 1], Δt1[i + 2])
+        if j > 0 
+            push!(f1_evt_indices, i)
+            push!(f2_evt_indices, j)
+        else
+            i += 1     
+            if i > length(Δt1)
+                no_match_in_this_chunk = true
+            end
+        end
+    end
+    @show j, i
+
+    if !no_match_in_this_chunk
+        @showprogress 1 "Event merging..." for i in 2:length(Δt1) - 2
+            j_last::Int = f2_evt_indices[end]
+            j = @inbounds get_matching_index(Δt2[j_last + 1:end], Δt1[i:i+2]...)
+            if j > 0
+                push!(f1_evt_indices, i)
+                push!(f2_evt_indices, j + j_last)
+            end
+        end
+    end
+    
+    return f1_evt_indices, f2_evt_indices
+end
+
 function combine_two_hdf5_files(fn1::AbstractString, fn2::AbstractString, ofn::AbstractString; overwrite::Bool=false, chunk_n_events::Int = 100)
-	@show chunk_n_events
     h5i1 = h5open(fn1, "r")
     h5i2 = h5open(fn2, "r")
     g1 = g_open(h5i1, "DAQ_Data")
@@ -49,140 +98,9 @@ function combine_two_hdf5_files(fn1::AbstractString, fn2::AbstractString, ofn::A
     n1=length(t1)
     n2=length(t2)
     nmax = min(n1, n2)
-
-    # f1_evt_indices = Int[]
-    # f2_evt_indices = Int[]
-	#
-    # diff_0::T = t2[1] - t1[1]
-    # diff_22::T = 0
-    # diff_11::T = 0
-    # diff_21::T = 0
-    # diff_12::T = 0
-    # i1::Int = 1
-    # i2::Int = 1
-    # n_events_written = 0
-	#
-    # @info "Now: matching events..."
-	#
-    # while (i1 < n1) && (i2 < n2)
-    #     diff_21 = t2[i2]-t1[i1]
-    #     diff_22 = t2[i2+1]-t2[i2]
-    #     diff_11 = t1[i1+1]-t1[i1]
-    #     if ((abs(diff_21) < abs(diff_0) * 2 ) || (abs(diff_21) <= T(1e-7)))
-    #         if diff_21 == 0
-    #             push!(f1_evt_indices, i1)
-    #             push!(f2_evt_indices, i2)
-    #             i1 += 1
-    #             i2 += 1
-    #         else
-    #             push!(f1_evt_indices, i1)
-    #             push!(f2_evt_indices, i2)
-	#     	    diff_0 = diff_21
-    #             i1 += 1
-    #             i2 += 1
-    #         end
-    #     elseif diff_22 > T(1.2) * diff_11 # missing event in adc2
-    #         if diff_11 < 1e-4
-    #             i1 += 1
-    #         else
-    #             i2 += 1
-    #         end
-    #     elseif diff_11 > T(1.2) * diff_22 # missing event in adc1
-    #         if diff_22 < 1e-4
-    #             i2 += 1
-    #         else
-    #             i1 += 1
-    #         end
-    #     else diff_22 == diff_11
-    #         push!(f1_evt_indices, i1)
-    #         push!(f2_evt_indices, i2)
-	#     	i1 += 1
-	# 	    i2 += 1
-    #     end
-    # end
-
-
-	function merge(t1, t2)
-		Δt1 = diff(t1)
-		Δt2 = diff(t2)
-		chunks_inds_1 = []
-		chunks_inds_2 = []
-
-		f1_evt_indices = Int[]
-		f2_evt_indices = Int[]
-
-		for (i, Δt) in enumerate(Δt1)
-			if Δt > 0.1
-				push!(chunks_inds_1, i)
-			end
-		end
-		for (i, Δt) in enumerate(Δt2)
-			if Δt > 0.1
-				push!(chunks_inds_2, i)
-			end
-		end
-		n_time_chunks = min(length(chunks_inds_1), length(chunks_inds_2))
-
-
-		for itc in 1:n_time_chunks
-			r1 = (itc == 1 ? 1 : (chunks_inds_1[itc - 1] + 1)):chunks_inds_1[itc]
-			r2 = (itc == 1 ? 1 : (chunks_inds_2[itc - 1] + 1)):chunks_inds_2[itc]
-			t1c = t1[r1]
-			t2c = t2[r2]
-
-			n1 = length(t1c)
-			n2 = length(t2c)
-			# nmax = min(n1, n2)
-
-			diff_0::T = t2c[1] - t1c[1]
-		    diff_22::T = 0
-		    diff_11::T = 0
-		    diff_21::T = 0
-		    diff_12::T = 0
-		    i1::Int = 1
-		    i2::Int = 1
-		    n_events_written = 0
-
-		    while (i1 < n1) && (i2 < n2)
-		        diff_21 = t2[i2]-t1[i1]
-		        diff_22 = t2[i2+1]-t2[i2]
-		        diff_11 = t1[i1+1]-t1[i1]
-		        if ((abs(diff_21) < abs(diff_0) * 2 ) || (abs(diff_21) <= T(1e-7)))
-		            if diff_21 == 0
-		                push!(f1_evt_indices, r1[i1])
-		                push!(f2_evt_indices, r2[i2])
-		                i1 += 1
-		                i2 += 1
-		            else
-						push!(f1_evt_indices, r1[i1])
-		                push!(f2_evt_indices, r2[i2])
-			    	    diff_0 = diff_21
-		                i1 += 1
-		                i2 += 1
-		            end
-		        elseif diff_22 > T(1.2) * diff_11 # missing event in adc2
-		            if diff_11 < 1e-4
-		                i1 += 1
-		            else
-		                i2 += 1
-		            end
-		        elseif diff_11 > T(1.2) * diff_22 # missing event in adc1
-		            if diff_22 < 1e-4
-		                i2 += 1
-		            else
-		                i1 += 1
-		            end
-		        else diff_22 == diff_11
-					push!(f1_evt_indices, r1[i1])
-					push!(f2_evt_indices, r2[i2])
-			    	i1 += 1
-				    i2 += 1
-		        end
-		    end
-		end
-		return f1_evt_indices, f2_evt_indices
-	end
-	f1_evt_indices, f2_evt_indices = merge(t1, t2)
+       
+    f1_evt_indices, f2_evt_indices = merge(t1, t2)
+    
 	n_matches = length(f1_evt_indices)
     # n_matches = 2000 # debugging
     @info "$(n_matches) matches"
@@ -190,15 +108,19 @@ function combine_two_hdf5_files(fn1::AbstractString, fn2::AbstractString, ofn::A
 
     @info "Now writing them to new file:"
 
+    chunk_size_pulses = chunk_n_events
+    chunk_size_others = 5000
+
     chunk_n_events = n_matches < chunk_n_events ? n_matches : chunk_n_events
+    chunk_size_others = n_matches < chunk_size_others ? n_matches : chunk_size_others
     h5o = h5open(ofn, "w")
     try
         g_daq = g_create(h5o, "DAQ_Data")
-        d_event_number  = d_create(g_daq, "event_number", Int32, ((n_matches,),(n_matches,)), "chunk", (chunk_n_events,))
-        d_daq_time      = d_create(g_daq, "daq_time",   T, ((2, n_matches),(2,n_matches)), "chunk", (2, chunk_n_events))
-        d_daq_energy    = d_create(g_daq, "daq_energies", Int32, ((daq_n_channels,n_matches),(daq_n_channels,n_matches)), "chunk", (daq_n_channels,chunk_n_events))
+        d_event_number  = d_create(g_daq, "event_number", Int32, ((n_matches,),(n_matches,)), "chunk", (chunk_size_others,))
+        d_daq_time      = d_create(g_daq, "daq_time",   T, ((2, n_matches),(2,n_matches)), "chunk", (2, chunk_size_others))
+        d_daq_energy    = d_create(g_daq, "daq_energies", Int32, ((daq_n_channels,n_matches),(daq_n_channels,n_matches)), "chunk", (daq_n_channels,chunk_size_others))
         if waveform_format == :integers
-            d_daq_pulses    = d_create(g_daq, "daq_pulses", Int32, ((daq_n_samples,daq_n_channels,n_matches),(daq_n_samples,daq_n_channels,n_matches)), "chunk", (daq_n_samples,daq_n_channels,chunk_n_events), "shuffle", (), "deflate", 3 )
+            d_daq_pulses    = d_create(g_daq, "daq_pulses", Int32, ((daq_n_samples,daq_n_channels,n_matches),(daq_n_samples,daq_n_channels,n_matches)), "chunk", (daq_n_samples,daq_n_channels,chunk_size_pulses), "shuffle", (), "deflate", 3 )
         end
 
         buf_iterator = 1:chunk_n_events:n_matches
@@ -317,6 +239,7 @@ function twostrucks_convert_all_data_files_in_raw_data_folder(raw_dir=pwd(); ove
     all_files = readdir(raw_dir)
     adc1_files = filter(x -> occursin("adc1", x), all_files)
     adc2_files = filter(x -> occursin("adc2", x), all_files)
+
     fn1_dat_files = String[]
     fn2_dat_files = String[]
     for fn1 in adc1_files

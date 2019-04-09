@@ -16,12 +16,10 @@ function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_l
     while npeaks < min_npeaks
         h_peaks, fPositionX = RadiationSpectra.peakfinder(h_core, sigma=peak_sigma, threshold=peak_threshold, deconIterations=deconIterations, averWindow=averWindow)
         npeaks = length(fPositionX)
-        peak_threshold = 0.9*peak_threshold
+        peak_threshold = 0.9 * peak_threshold
     end
 
-    @show npeaks
-
-    c0_pre, h_pcf = RadiationSpectra.determine_calibration_constant_through_peak_ratios(fPositionX, photon_lines, min_nbins=min_nbins, α=α )
+    c0_pre, h_pcf = RadiationSpectra.determine_calibration_constant_through_peak_ratios(fPositionX, photon_lines, min_nbins = min_nbins, α = α )
 
     if create_plots
         p_core  = plot(h_core, st=:step, size=(1200,600), label="core mpa spectrum (uncalibrated)");

@@ -2,6 +2,12 @@ function quality_check(	m::Measurement;	overwrite=false, photon_lines=[])
 	energies = get_energies(m)
 	n_channel::Int, n_events::Int = size(energies)
 
+	daqT = try 
+		GAT.read_analysis_result_dataset(m, "DAQ_Lifetime")
+	catch err
+		missing
+	end
+
 	df = DataFrame( Isotope = String[],
 					Energy = Float64[],
 					Type = Symbol[]	)
@@ -16,15 +22,19 @@ function quality_check(	m::Measurement;	overwrite=false, photon_lines=[])
 	photon_lines_fit_parameters_core::Array{Float64, 2} = zeros(Float64, 6, length(photon_lines))
 	photon_lines_fit_parameters_sumseg::Array{Float64, 2} = zeros(Float64, 6, length(photon_lines))
 
-	h_core    = Histogram(0:1:3000, :left)
-	h_sumsegs = Histogram(0:1:3000, :left)
+	h_core    = float(Histogram(0:1.0:3000, :left))
+	h_sumsegs = float(Histogram(0:1.0:3000, :left))
 	sum_seg_energies = zeros(eltype(energies), n_events )
 	for i in eachindex(sum_seg_energies)
 		sum_seg_energies[i] = sum(energies[2:end, i])
 	end
 	append!(h_core, energies[1, :])
 	append!(h_sumsegs, sum_seg_energies)
-	p_spectra = plot(h_core, st=:step, label="core", xlims=[0, 3000], xticks=collect(0:500:3000))
+	if !ismissing(daqT)
+		h_core.weights = h_core.weights ./ daqT
+		h_sumsegs.weights = h_sumsegs.weights ./ daqT
+	end
+	p_spectra = plot(h_core, st=:step, label="core", xlims=[0, 3000], xticks=collect(0:500:3000), ylabel = "cts / s")
 	plot!(h_sumsegs, st=:step, label="Summed Segments")
 	p_peaks = []
 	p_fr_results = []
@@ -61,7 +71,7 @@ function quality_check(	m::Measurement;	overwrite=false, photon_lines=[])
 		plot!(fitf_segs)
 		plot!(fitf_core)
 		push!(p_peaks, p)
-		p_fr_result = plot(axis=false, grid=false)
+		p_fr_result = plot(legend=false,grid=false,foreground_color_subplot=:white)
 		# pars = fr_core.parameters
 		pars = fitf_core.parameters
 		photon_lines_fit_parameters_core[2:end, ipl] = pars

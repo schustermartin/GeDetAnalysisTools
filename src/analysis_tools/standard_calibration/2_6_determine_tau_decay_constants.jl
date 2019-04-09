@@ -1,4 +1,4 @@
-function determine_individual_decay_time_constants( m, c; take_every_n_sample_for_fit = 25 )
+function determine_individual_decay_time_constants( m; take_every_n_sample_for_fit = 25 )
     T = Float32
     n_channel = get_number_of_channel(m)
     n_segments = n_channel - 1
@@ -114,10 +114,6 @@ function determine_individual_decay_time_constants( m, c; take_every_n_sample_fo
     return nothing
 end
 
-function determine_individual_decay_time_constants( m; take_every_n_sample_for_fit = 25 )
-    c = read_analysis_result_dataset(m, "calibration_matrix")
-    determine_individual_decay_time_constants(m, c, take_every_n_sample_for_fit=take_every_n_sample_for_fit)
-end
 
 function determine_decay_time_constants(m; energy_range=200:3000, create_plots=true)
     n_total_events = get_number_of_events(m)
