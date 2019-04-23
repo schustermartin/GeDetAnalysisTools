@@ -30,8 +30,7 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 
 	fit_functions = RadiationSpectra.FitFunction[]
 	for ichn in 1:n_channel
-		fitf = RadiationSpectra.FitFunction( f, 1, 3  )
-		set_fitranges!()
+		fitf = RadiationSpectra.FitFunction{T}( f, 1, 3  )
 		set_fitranges!(fitfunc, ((-5, 5),) )
 		p0 = (
 			scale = min_amplitude, 
@@ -39,20 +38,14 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 			offset = mean(ehists[ichn].weights[1:4])
 		)
 		set_initial_parameters!(fitf, p0)
-		# fitf.initial_parameters = init_fit_parameters
-		# fitf.initial_parameters[3] = mean(ehists[ichn].weights[1:4])
 		push!(fit_functions, fitf)
 	end
-	# funcs = [MFunction("Gauss fixed at zero plus first order polynomial", init_fit_parameters, par_names, f) for ichn in 1:n_channel]
-	# frs = []
- 	# fit_results = GeDetSpectrumAnalyserTmp.Fit[]
-
+	
 	σ_core::T = 1.
 	offset_core::T = 0.
 	for ichn in 1:n_channel
-		# fit_result = GeDetSpectrumAnalyserTmp.fit(ehists[ichn], -10:10, funcs[ichn].f, funcs[ichn].par, estimate_uncertainties=false)
 		RadiationSpectra.lsqfit!(fit_functions[ichn], ehists[ichn])
-		fitted_pars = get_fitted_parameters(fit_functions[ichn])
+		fitted_pars = collect(get_fitted_parameters(fit_functions[ichn]))
 		# funcs[ichn].par = fit_result.parameters
 		if ichn == 1
 			σ_core = abs(fitted_pars[2])

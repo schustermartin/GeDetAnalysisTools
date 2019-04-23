@@ -38,7 +38,7 @@ end
 		m = gdd.args[1]
 		e = get_energies(m)
 		n_channel = size(e, 1)
-
+		println(n_channel)
 		size --> (1920, 1080)
 		# legend --> false
 		xlabel --> "E / keV"
@@ -48,7 +48,7 @@ end
 		det_arg_idx = findfirst( GAT.Detector .== typeof.(gdd.args))
 		detector = !isnothing(det_arg_idx) ? gdd.args[det_arg_idx] : m.detector
 		channel_order = !ismissing(detector) ? detector.channel_display_order : Int[chn for chn in 1:n_channel]
-		layout --> detector.channel_plot_layout() 
+		layout --> detector.channel_plot_layout()
 		# try layout --> detector.channel_plot_layout() catch err layout --> (n_channel) end
 
 		y_max = 1
@@ -59,7 +59,7 @@ end
 				h = fit(Histogram, e[ichn, :], edges, closed=:left)
 		        if in(10., edges)
 					mean_hight = mean(h.weights[StatsBase.binindex(h, 10.):end])
-					y_max = maximum(h.weights[StatsBase.binindex(h, 10.):end]) 
+					y_max = maximum(h.weights[StatsBase.binindex(h, 10.):end])
 					ylims --> (0.5, y_max)
 					if mean_hight < mean(h.weights[1:3]) yscale --> :log10 end
 				end
@@ -96,7 +96,7 @@ end
 		try layout --> detector.channel_plot_layout() catch err layout --> (n_channel) end
 
 		y_max = 1
-		
+
 		for ichn in 1:n_channel
 			if typeof(e) <: Array{<:Real, 2}
 				@series begin
@@ -104,7 +104,7 @@ end
 					h = fit(Histogram, e[ichn, :], edges, closed=:left)
 			        if in(10., edges)
 						mean_hight = mean(h.weights[StatsBase.binindex(h, 10.):end])
-						y_max = maximum(h.weights[StatsBase.binindex(h, 10.):end]) 
+						y_max = maximum(h.weights[StatsBase.binindex(h, 10.):end])
 						ylims --> (0.5, y_max)
 						if mean_hight < mean(h.weights[1:3]) yscale --> :log10 end
 					end
@@ -116,7 +116,7 @@ end
 					h = e[ichn]
 					subplot := channel_order[ichn]
 					if in(10., h.edges[1])
-						y_max = maximum(h.weights[StatsBase.binindex(h, 10.):end]) 
+						y_max = maximum(h.weights[StatsBase.binindex(h, 10.):end])
 						mean_hight = mean(h.weights[StatsBase.binindex(h, 10.):end])
 						ylims --> (0.5, y_max)
 						if mean_hight < mean(h.weights[1:3]) yscale --> :log10 end
@@ -216,7 +216,7 @@ end
 
     legend --> false
 	size --> (1920, 1080)
-	
+
 	det_arg_idx = findfirst( GAT.Detector .== typeof.(pd.args))
 	detector = !isnothing(det_arg_idx) ? pd.args[det_arg_idx] : missing
 	channel_order = !ismissing(detector) ? detector.channel_display_order : Int[chn for chn in 1:n_channel]
@@ -232,7 +232,7 @@ end
 				times, pulses[:, ichn]
 			end
         end
-	end   
+	end
 	@series begin
 		subplot := 3
 		grid := false

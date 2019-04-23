@@ -132,6 +132,7 @@ end
 
 function get_datetime_from_measurement_name(m::Measurement; new_data_structure=true)::DateTime
 	files = filter(x -> startswith(x, m.name), readdir(m.path_to_raw_data))
+	filter!(x -> endswith(x, ".dat") || endswith(x, ".bz2"),files)
 	dt = if new_data_structure == true
 		df = DateFormat("yyyymmddTHHMMSSZ")
 		dts = match(r"-\d{8}T\d{6}Z.*", files[1]).match
@@ -337,7 +338,7 @@ function data_set_from_conv_data(data_set_name::AbstractString; new_data_structu
 		for mn in list_of_measurements
 			m = Measurement(data_set_name, mn)
 			# println(in(m, data_set))
-			push!(data_set, m) 
+			push!(data_set, m)
 		end
 	else
 		@info "not yet implemented"

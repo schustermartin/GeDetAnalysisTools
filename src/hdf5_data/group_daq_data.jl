@@ -68,7 +68,7 @@ function get_daq_pulse(fn::AbstractString, event_index::Int)::AbstractArray{<:Re
 	try
 		g = g_open(h,"DAQ_Data")
 		d = d_open(g,"daq_pulses")
-		daq_pulse = d[:, :, event_index][:, :] 
+		global daq_pulse = d[:, :, event_index][:, :] 
 	catch err
 		close(h)
 		error(err)

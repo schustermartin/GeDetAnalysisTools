@@ -1,21 +1,54 @@
 function full_chain_standard_calibration(	m::Measurement; overwrite=false, overwrite_init_tdcs::Bool=false,
+											skip_dmpa = false,
 											precal_nbins::Int = 6000, precal_photon_lines = [175.5, 609.312, 668, 785., 911.204, 1120.287, 1460.830, 1764.494, 2614.533],
-											cal_photon_lines = [609.312, 1460.830], α = 0.005, min_npeaks = 10, peak_sigma = 3.0, 
+											peak_threshold = 30.,
+											cal_photon_lines = [609.312, 1460.830], 
+											α = 0.005, rtol=1e-3 , min_n_peaks = length(precal_photon_lines), 
+											max_n_peaks = 4 * length(precal_photon_lines), peak_sigma = 3.0,
+											ssidcs_ΔE = 3,
+											quality_check_photon_lines = cal_photon_lines,
 											fit_individual_decay_time_constants = false)::Nothing
 
-	if overwrite_init_tdcs || !exists(m, "Results/init_tau_decay_constants")
-		write_analysis_result_dataset(m, "init_tau_decay_constants", Float32[ 50 for ichn in eachindex(1:m.detector.n_channels)])
-	    write_analysis_result_dataset(m, "init_tau_decay_constants_err", Float32[ -1 for ichn in eachindex(1:m.detector.n_channels)])
+
+	if (!exists(m, "Processed_data/tau_decay_constants")) && fit_individual_decay_time_constants
+		println("Determing individual decay time constants: $(m.name)")
+		determine_individual_decay_time_constants(m);
 	end
 
-	if overwrite || !exists(m, "Processed_data/measured_pulse_amplitudes")
+	if exists(m, "Results/tau_decay_constants") && overwrite_init_tdcs == true
+		tdcs = read_analysis_result_dataset(m, "tau_decay_constants")
+		tdcs_err = read_analysis_result_dataset(m, "tau_decay_constants")
+		write_analysis_result_dataset(m, "init_tau_decay_constants", tdcs)
+	    write_analysis_result_dataset(m, "init_tau_decay_constants_err", tdcs_err)
+		println("using fitted tau decay times.")
+	end
+
+	if  !exists(m, "Results/init_tau_decay_constants") || overwrite_init_tdcs == true
+		if exists(m, "Processed_data/tau_decay_constants")
+			println("using fitted tau decay times from daq data")
+			# tdcs_daq, tdcs_daq_err, hists, fit_results = daq_determine_decay_time_constants(m)#, photon_lines = precal_photon_lines)
+			tdcs_daq, hists, fit_results = daq_determine_decay_time_constants(m)#, photon_lines = precal_photon_lines)
+			write_analysis_result_dataset(m, "init_tau_decay_constants", tdcs_daq)
+			# write_analysis_result_dataset(m, "init_tau_decay_constants_err", tdcs_daq_err)
+			write_analysis_result_dataset(m, "daq_tau_decay_constants", tdcs_daq)
+			# write_analysis_result_dataset(m, "daq_tau_decay_constants_err", tdcs_daq_err)
+		    write_analysis_result_dataset(m, "init_tau_decay_constants_err", Float32[ -1 for ichn in eachindex(1:m.detector.n_channels)])
+			println(tdcs_daq)
+		else
+			write_analysis_result_dataset(m, "init_tau_decay_constants", Float32[ 50 for ichn in eachindex(1:m.detector.n_channels)])
+		    write_analysis_result_dataset(m, "init_tau_decay_constants_err", Float32[ -1 for ichn in eachindex(1:m.detector.n_channels)])
+			println("using hard initial tau decay times: [50, 50, 50, 50, 50]")
+		end
+	end
+
+	if (overwrite || !exists(m, "Processed_data/measured_pulse_amplitudes")) && !skip_dmpa
 		tdcs = read_analysis_result_dataset(m, "init_tau_decay_constants")
 		println("Determing measured pulse amplitudes: $(m.name)")
 		determine_measured_pulse_amplitudes(m, tdcs)
 	end
 
 	if overwrite || !exists(m, "Results/core_precalibration_factor")
-		c0_pre, h_core, h_peaks, h_pcf = determine_core_precalibration_factor_with_mpas(m, nbins = precal_nbins, photon_lines = precal_photon_lines, α = α, min_npeaks = min_npeaks, peak_sigma = peak_sigma );
+		c0_pre, h_core, h_deconv = determine_core_precalibration_factor_with_mpas(m, nbins = precal_nbins, photon_lines = precal_photon_lines, α = α, rtol=rtol, min_n_peaks = min_n_peaks, max_n_peaks = max_n_peaks, peak_sigma = peak_sigma, peak_threshold = peak_threshold );
 		write_analysis_result_dataset(m, "core_precalibration_factor", c0_pre);
 	else
 		c0_pre = read_analysis_result_dataset(m, "core_precalibration_factor");
@@ -40,23 +73,20 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 	end
 
 	if overwrite || !exists(m, "Results/background_photon_lines_fit_parameters_core")
-		quality_check(m, photon_lines=cal_photon_lines)
+		quality_check(m, quality_check_photon_lines = quality_check_photon_lines)
 		println("Quality check done: $(m.name)")
 	end
 
 	if overwrite || !exists(m, "Processed_data/single_segment_indices")
-		determine_single_channel_indices(m, c);
+		determine_single_channel_indices(m, c, ΔE=ssidcs_ΔE);
 	end
 
-	if (overwrite || !exists(m, "Processed_data/tau_decay_constants")) && fit_individual_decay_time_constants
-		println("Determing individual decay time constants: $(m.name)")
-		determine_individual_decay_time_constants(m);
-	end
 
-	if (overwrite || !exists(m, "Results/tau_decay_constants")) && fit_individual_decay_time_constants
-		tdcs, tdcs_err, hists, fit_results = determine_decay_time_constants(m; energy_range=200:3000)
+	if (overwrite || !exists(m, "Results/tau_decay_constants"))
+		# tdcs, tdcs_err, hists, fit_results = determine_decay_time_constants(m; energy_range=200:3000)
+		tdcs, hists, fit_results = determine_decay_time_constants(m; energy_range=200:3000)
 		write_analysis_result_dataset(m, "tau_decay_constants", tdcs);
-		write_analysis_result_dataset(m, "tau_decay_constants_err", tdcs_err);
+		write_analysis_result_dataset(m, "tau_decay_constants_err", Float32[ -1 for ichn in eachindex(1:m.detector.n_channels)]);
 	elseif fit_individual_decay_time_constants
 		tdcs = read_analysis_result_dataset(m, "tau_decay_constants")
 	end
