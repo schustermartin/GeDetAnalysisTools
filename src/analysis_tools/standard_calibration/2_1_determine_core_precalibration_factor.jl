@@ -1,7 +1,7 @@
 
 
 function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], overwrite=false,
-    min_npeaks=10, nbins=6000, peak_threshold=10., peak_sigma=4., averWindow=3, deconIterations=3, alpha=0.005, min_nbins=50, create_plots=true, α=0.01, inputfiles = missing)
+    min_npeaks=10, nbins=6000, peak_threshold=10., peak_sigma=4., averWindow=3, deconIterations=3, alpha=0.005, min_nbins=50, create_plots=true, α=0.01,rtol=1e-3, inputfiles = missing)
 
     ismissing(inputfiles) ? inputfiles = gather_absolute_paths_to_hdf5_input_files(m) : nothing
 
@@ -21,7 +21,7 @@ function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_l
         peak_threshold = 0.9 * peak_threshold
     end
 
-    c0_pre, h_pcf = RadiationSpectra.determine_calibration_constant_through_peak_ratios(fPositionX, photon_lines, min_nbins = min_nbins, α = α )
+    c0_pre, h_pcf = RadiationSpectra.determine_calibration_constant_through_peak_ratios(fPositionX, photon_lines, min_nbins = min_nbins, α = α, rtol = rtol )
 
     if create_plots
         p_core  = plot(h_core, st=:step, size=(1200,600), label="core mpa spectrum (uncalibrated)");

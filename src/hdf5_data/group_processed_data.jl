@@ -20,6 +20,7 @@ end
 function get_measured_pulse_amplitudes(fn::AbstractString)::Array{<:Real,2}
     return h5read(fn, "Processed_data/measured_pulse_amplitudes")
 end
+
 function get_measured_pulse_amplitudes(m::Measurement)::Array{<:Real,2}
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     T = GeDetAnalysisTools.get_eltype_of_dataset(inputfiles[1], "Processed_data", "measured_pulse_amplitudes")
@@ -34,4 +35,12 @@ function get_measured_pulse_amplitudes(m::Measurement)::Array{<:Real,2}
         last_idx += n_new_events
     end
     return mpas
+end
+
+function get_single_segment_indices(fn::AbstractString)
+    return h5read(fn,"Processed_data/single_segment_indices")
+end
+function get_single_segment_indices(m::Measurement)
+    inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+    return vcat([get_single_segment_indices(f) for f in inputfiles]...)
 end

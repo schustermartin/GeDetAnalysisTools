@@ -1,10 +1,10 @@
-function determine_daq_core_calibration_constant(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533])
-	daq_core_energies = get_daq_energies(m)[1, :]
-	h = fit(Histogram, daq_core_energies, nbins=10000, closed=:left)
-	c, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h, photon_lines )
-	# c, pcg_hist = GeDetSpectrumAnalyserTmp.determine_calibration_constant_through_peak_ratios(h)
-	return c, pcg_hist
-end
+# function determine_daq_core_calibration_constant(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533])
+# 	daq_core_energies = get_daq_energies(m)[1, :]
+# 	h = fit(Histogram, daq_core_energies, nbins=10000, closed=:left)
+# 	c, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h, photon_lines )
+# 	# c, pcg_hist = GeDetSpectrumAnalyserTmp.determine_calibration_constant_through_peak_ratios(h)
+# 	return c, pcg_hist
+# end
 
 function determine_calibration_matrix_with_daq_energies(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], nbins = 10000)
 	@fastmath @inbounds begin
@@ -14,7 +14,7 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement; photon_l
 		n_segments::Int = n_channel - 1
 		h_core = fit(Histogram, daq_core_energies[:, 1], nbins=nbins, closed=:left)
 		@info photon_lines
-		c0_daq, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h_core, photon_lines, min_n_peaks = 10, threshold = 10.0, α = 0.01, σ = 2.0 )
+		c0_daq, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h_core, photon_lines, min_n_peaks = 10, threshold = 10.0, α = 0.1, σ = 2.0, rtol = 6e-3 )
 		@info c0_daq
 		c0_daq, core_peak_fits, core_c0_fit = RadiationSpectra.determine_calibration_constant_through_peak_fitting(h_core, photon_lines, c0_daq)
 
@@ -147,8 +147,8 @@ function calibrate_energies(energies::Array{<:Real, 2}, c::Array{<:Real, 2}, T::
 	return calibrate_energies(T.(energies), c)
 end
 
-function get_quick_calibrated_daq_energies(m::Measurement, T::Type=Float32; photon_lines = [609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], c_pre = 1.0)::Array{T, 2}
-	c = determine_calibration_matrix_with_daq_energies(m, photon_lines, c_pre)
+function get_quick_calibrated_daq_energies(m::Measurement, T::Type=Float32; photon_lines = [609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533])::Array{T, 2}
+	c = determine_calibration_matrix_with_daq_energies(m, photon_lines = photon_lines)
 	daq_energies = get_daq_energies(m)
 	return calibrate_energies(daq_energies, c, T)
 end

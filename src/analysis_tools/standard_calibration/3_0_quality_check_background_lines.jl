@@ -1,23 +1,25 @@
-function quality_check(	m::Measurement;	overwrite=false, photon_lines=[])
+function quality_check(	m::Measurement;	overwrite=false,qual_photon_lines=[])
 	energies = get_energies(m)
 	n_channel::Int, n_events::Int = size(energies)
 
-	daqT = try 
-		GAT.read_analysis_result_dataset(m, "DAQ_Lifetime")
-	catch err
-		missing
-	end
+	# daqT = try
+	# 	GAT.read_analysis_result_dataset(m, "DAQ_Lifetime")
+	# catch err
+	# 	missing
+	# end
+
+	exists(m, "Results/DAQ_Lifetime") ? daqT = GAT.read_analysis_result_dataset(m, "DAQ_Lifetime") : daqT = missing
 
 	df = DataFrame( Isotope = String[],
 					Energy = Float64[],
 					Type = Symbol[]	)
 
 	# push!(df, ["Pb214",  351.932, :BackgroundPhotonLine ])
-	# push!(df, ["Bi214",  609.312, :BackgroundPhotonLine ])
+	push!(df, ["Bi214",  609.312, :BackgroundPhotonLine ])
 	push!(df, ["K40",   1460.830, :BackgroundPhotonLine ])
 	# push!(df, ["Bi214", 1764.494, :BackgroundPhotonLine ])
 	push!(df, ["Tl208", 2614.533, :BackgroundPhotonLine ])
-	photon_lines::Vector{Float64} = [e for e in df[:Energy]]
+	photon_lines::Vector{Float64} = sort!(vcat([e for e in df[:Energy]],qual_photon_lines))
 
 	photon_lines_fit_parameters_core::Array{Float64, 2} = zeros(Float64, 6, length(photon_lines))
 	photon_lines_fit_parameters_sumseg::Array{Float64, 2} = zeros(Float64, 6, length(photon_lines))

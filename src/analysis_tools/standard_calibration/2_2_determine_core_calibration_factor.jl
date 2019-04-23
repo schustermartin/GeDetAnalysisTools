@@ -29,7 +29,10 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
         p0_sigma = 1.0  # 1keV
         p0_sigma = line/700.
         p0_scale = (maximum(h0.weights[first_bin:last_bin]) - (h0.weights[first_bin] + h0.weights[last_bin]) / 2) * 2 * p0_sigma
-        p0_mean = midpoints(h0.edges[1])[findmax(h0.weights)[2]] #line
+        p0_mean = midpoints(h0.edges[1])[findmax(h0.weights)[2]] #
+        idx_max = findmax(h0.weights[StatsBase.binindex(h0, line - 20):StatsBase.binindex(h0, line + 20)])[2] + StatsBase.binindex(h0, line - 20)
+        # p0_mean = line
+        p0_mean = h0.edges[1][idx_max]
         p0_bg_offset = (h0.weights[first_bin] + h0.weights[last_bin]) / 2
         p0_bg_slope = (h0.weights[last_bin] - h0.weights[first_bin]) / (fitrange[2] - fitrange[1])
         p0 = Float64[ p0_scale, p0_sigma, p0_mean, p0_bg_offset, p0_bg_slope ]
