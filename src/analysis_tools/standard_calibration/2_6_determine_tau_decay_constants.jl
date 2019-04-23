@@ -74,35 +74,7 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
                     end
                 end
             else # old pulse format
-                @warn "old pulse format not yet tested"
-                @fastmath @inbounds begin
-                    @showprogress for evt_range in evt_ranges
-                        chunk_pulses::Array{T, 3} = d_daq_pulses[: , :, evt_range]
-                        tdcs::Array{T, 2} = zeros(T, n_channel, length(evt_range))
-                        for event in 1:length(evt_range)
-                            daq_pulses_evt = T.(transpose(chunk_pulses[:,:,event]))  
-                            for ichn in eachindex(1:n_channel)
-                                baseline::T = mean(T, daq_pulses_evt[1:m.daq.baseline_length, ichn])
-                                dataarr[:] = Float64.(daq_pulses_evt[decay_window_start_index:take_every_n_sample_for_fit:end, ichn] .- baseline) # must be Float64 due LsqFit...
-                                init_params[:] = [dataarr[1], init_decay_rate] # must be Float64 due LsqFit...
-                                fitf.initial_parameters = init_params
-                                RadiationSpectra.lsqfit!(fitf, xarr, dataarr)
-                                tdc = 1f6 * fitf.parameters[2]
-                                # tdc = 1f6 * T( GeDetSpectrumAnalyserTmp.LSQFIT( xarr, dataarr, exponential_decay, init_params, estimate_uncertainties=false).parameters[2] ) 
-                                tdcs[ichn, event] = tdc
-                            end
-                        end
-                        for i in eachindex(tdcs)
-                            if isnan(tdcs[i])
-                                tdcs[i]::T = 0
-                            end
-                            if isinf(tdcs[i])
-                                tdcs[i]::T = 0
-                            end
-                        end
-                        d_tau_decay_constants[:, evt_range] = tdcs
-                    end
-                end
+                @error("Old pulse format: Not supported anymore. Reconvert data")
             end
           
             close(h5f)
