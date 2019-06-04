@@ -7,7 +7,7 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 											qual_photon_lines = qual_photon_lines,
 											fit_individual_decay_time_constants = false)::Nothing
 
-
+	println("now $(m.name)")
 	if (!exists(m, "Processed_data/tau_decay_constants")) && fit_individual_decay_time_constants
 		println("Determing individual decay time constants: $(m.name)")
 		determine_individual_decay_time_constants(m);

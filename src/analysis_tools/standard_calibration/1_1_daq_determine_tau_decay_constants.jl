@@ -12,7 +12,7 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
         try
             g_pd  = g_open(h5f, "Processed_data")
             d_tau_decay_constants = d_open(g_pd, "tau_decay_constants")
-            d_energies=get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
+            d_energies = get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
             # d_ssidcs = d_open(g_pd, "single_segment_indices")
             T::Type = eltype(d_energies)
             energy_range = T.(energy_range)

@@ -14,7 +14,7 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement; photon_l
 		n_segments::Int = n_channel - 1
 		h_core = fit(Histogram, daq_core_energies[:, 1], nbins=nbins, closed=:left)
 		@info photon_lines
-		c0_daq, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h_core, photon_lines, min_n_peaks = 10, threshold = 10.0, α = 0.1, σ = 2.0, rtol = 6e-3 )
+		c0_daq, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h_core, photon_lines, min_n_peaks = 17, threshold = 20.0, α = 0.3, σ = 2.0, rtol = 7e-3 )
 		@info c0_daq
 		c0_daq, core_peak_fits, core_c0_fit = RadiationSpectra.determine_calibration_constant_through_peak_fitting(h_core, photon_lines, c0_daq)
 
