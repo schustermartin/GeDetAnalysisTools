@@ -33,7 +33,7 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
             chunksize_daq = get_chunk(d_daq_pulses)
             n_samples, n_channel, n_events = new_pulse_format ? size(d_daq_pulses) : (size(d_daq_pulses, 2), size(d_daq_pulses, 1), size(d_daq_pulses, 3))
             chunk_n_events = get_chunk(d_daq_pulses)[end]
-            n_events = 3000 # debugging
+            # n_events = 3000 # debugging
 
             chunksize = n_channel, chunksize_daq[3]
 
