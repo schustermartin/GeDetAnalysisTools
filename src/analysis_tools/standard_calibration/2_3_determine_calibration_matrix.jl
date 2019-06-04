@@ -1,9 +1,11 @@
-function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration_constant::Real; create_plots=true)
+function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration_constant::Real; create_plots = true)
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     n_channel = get_number_of_channel(m)
     n_segments = n_channel - 1
     core = 1
+    
     T = Float32
+
     c0 = T(core_calibration_constant)
 
     c = zeros(Float64, n_channel, n_channel)
@@ -70,14 +72,13 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
         cal_peak_idx = findmax(h.weights)[2]
         init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[cal_peak_idx] ]
         fitrange = ((mp[cal_peak_idx] - 3 * step(h.edges[1])), (mp[cal_peak_idx] + 3 * step(h.edges[1])))
-        fitf = RadiationSpectra.FitFunction( scaled_cauchy )
-        fitf.initial_parameters = init_fit_params
-        fitf.fitrange = fitrange
-        # fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
+        fitf = RadiationSpectra.FitFunction{T}( scaled_cauchy, 1, 3 )
+        set_initial_parameters!(fitf, init_fit_params)
+        set_fitranges!(fitf, (fitrange,))
         RadiationSpectra.lsqfit!(fitf, h)
         push!(cal_peak_fits, fitf)
         # push!(cal_peak_fits, fr)
-        cal_peak_pos[iseg] = fitf.parameters[3]
+        cal_peak_pos[iseg] = fitf.fitted_parameters[3]
         # cal_peak_pos[iseg] = fr.parameters[3]
         if create_plots
             p = plot(h, st=:step, label="", title="seg$iseg")
@@ -127,13 +128,12 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
             init_fit_params = [ h.weights[ct_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[ct_peak_idx] ]
             # fitrange = (mp[ct_peak_idx] - 3 * step(h.edges[1])):step(h.edges[1]):(mp[ct_peak_idx] + 3 * step(h.edges[1]))
             fitrange = ((mp[ct_peak_idx] - 3 * step(h.edges[1])), (mp[ct_peak_idx] + 3 * step(h.edges[1])))## <- modify for distorted pulses
-            fitf = RadiationSpectra.FitFunction( scaled_cauchy)
-            fitf.fitrange = fitrange
-            fitf.initial_parameters = init_fit_params
+            fitf = RadiationSpectra.FitFunction{T}( scaled_cauchy, 1, 3 )
+            set_initial_parameters!(fitf, init_fit_params)
+            set_fitranges!(fitf, (fitrange,))
             RadiationSpectra.lsqfit!(fitf, h)
-            # fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
             push!(tmpfits, fitf)
-            ct_peak_pos = fitf.parameters[3]
+            ct_peak_pos = fitf.fitted_parameters[3]
             # push!(tmpfits, fr)
             # ct_peak_pos = fr.parameters[3]
 

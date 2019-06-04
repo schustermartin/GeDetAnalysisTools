@@ -83,3 +83,16 @@ function segBEGe()
     s3.channel_plot_layout = layout_func
     return s3
 end
+
+function Ponama()
+    d = Detector()
+    d.name = "Ponama"
+    d.n_channels = 1
+    d.channel_display_order = [1]
+    d.channel_display_layout = [1]
+    function layout_func()
+        return @layout (1,)
+    end
+    d.channel_plot_layout = layout_func
+    return d
+end

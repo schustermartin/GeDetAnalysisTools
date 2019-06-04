@@ -50,29 +50,39 @@ end
 
 function get_conv_data_hdf5_filename(fn::AbstractString)::String
     ofn::String = ""
-    if occursin(r"adc1-", fn) 
-        tmpidx = match(r"adc1-", fn).offset
-        ofn = join([fn[1:tmpidx-1],fn[tmpidx+5:end]])
-    end
-    if occursin(r"adc2-", fn) 
-        tmpidx = match(r"adc2-", fn).offset
-        ofn = join([fn[1:tmpidx-1],fn[tmpidx+5:end]])
-    end
-    if endswith(ofn, ".bz2")
-        ofn = "$(ofn[1:end-4][1:first(findlast(".", ofn[1:end-4]))-1]).hdf5"
+    if occursin("-adc", fn)
+        if occursin(r"adc1-", fn) 
+            tmpidx = match(r"adc1-", fn).offset
+            ofn = join([fn[1:tmpidx-1],fn[tmpidx+5:end]])
+        end
+        if occursin(r"adc2-", fn) 
+            tmpidx = match(r"adc2-", fn).offset
+            ofn = join([fn[1:tmpidx-1],fn[tmpidx+5:end]])
+        end
+        if endswith(ofn, ".bz2")
+            ofn = "$(ofn[1:end-4][1:first(findlast(".", ofn[1:end-4]))-1]).hdf5"
+        else
+            ofn = "$(ofn[1:first(findlast(".", ofn))-1]).hdf5"
+        end
     else
-        ofn = "$(ofn[1:first(findlast(".", ofn))-1]).hdf5"
+        if endswith(fn, "bz2")
+            ofn = "$(fn[1:end-4][1:first(findlast(".", fn[1:end-4]))-1]).hdf5"
+        else
+            ofn = "$(fn[1:first(findlast(".", fn))-1]).hdf5"
+        end
     end
     return ofn
 end
 
-function sis3316_to_hdf5(ifn::AbstractString;   evt_merge_window::AbstractFloat = 100e-9, waveform_format = :none, compress=true, overwrite=false, use_true_event_number=false,              
-                                                chunk_n_events::Int=1000) 
-    if endswith(ifn, "bz2")
-        ofn = "$(ifn[1:end-4][1:first(findlast(".", ifn[1:end-4]))-1]).hdf5"
-    else
-    	ofn = "$(ifn[1:first(findlast(".", ifn))-1]).hdf5"
-    end
+function sis3316_to_hdf5(ifn::AbstractString;   evt_merge_window::AbstractFloat = 100e-9, waveform_format = :none, 
+                                                compress=true, overwrite=false, use_true_event_number=false,              
+                                                chunk_n_events::Int=1000, waveform_type::DataType = Int32) 
+    # if endswith(ifn, "bz2")
+    #     ofn = "$(ifn[1:end-4][1:first(findlast(".", ifn[1:end-4]))-1]).hdf5"
+    # else
+    # 	ofn = "$(ifn[1:first(findlast(".", ifn))-1]).hdf5"
+    # end
+    ofn = get_conv_data_hdf5_filename(ifn)
 
     if overwrite || !isfile(ofn)
         n_channel::Int = sis3316_get_nchannel(ifn)
@@ -85,7 +95,7 @@ function sis3316_to_hdf5(ifn::AbstractString;   evt_merge_window::AbstractFloat 
         input_io = open(CompressedFile(ifn), "r")
         h5f = h5open(output_tmpname, "w")
         sis3316_to_hdf5(input_io, h5f, n_channel=n_channel, n_samples_per_channel = n_samples; evt_merge_window = evt_merge_window, waveform_format = waveform_format, compress=compress, 
-                                                            use_true_event_number=use_true_event_number, chunk_n_events=chunk_n_events)
+                                                            use_true_event_number=use_true_event_number, chunk_n_events=chunk_n_events, waveform_type = waveform_type)
 
         mv(output_tmpname, ofn, force = overwrite)
         run(`chmod g+rw $ofn`) # give read+write rights for the group
@@ -99,7 +109,7 @@ end
 
 function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samples_per_channel = 5000, evt_merge_window::AbstractFloat = 100e-9, 
                                                             waveform_format = :none, compress=true, use_true_event_number=false,
-                                                            chunk_n_events::Int=100)
+                                                            chunk_n_events::Int=100, waveform_type::DataType = Int32)
   	_time(x::Pair{Int64, SIS3316.RawChEvent}) = time(x.second)
 
     info_idx = Ref{Int32}(0)
@@ -152,22 +162,21 @@ function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samp
     g_daq = g_create(output_hdf5_file, "DAQ_Data")
     d_event_number  = d_create(g_daq, "event_number", Int32, ((start_n_events,),(n_max_events,)), "chunk", (chunk_size_others,))
     d_daq_time      = d_create(g_daq, "daq_time",   Float64, ((1, start_n_events,),(1, n_max_events,)), "chunk", (1, chunk_size_others,))
-    d_daq_energy    = d_create(g_daq, "daq_energies", Int32, ((daq_n_channels,start_n_events),(daq_n_channels,n_max_events)), "chunk", (daq_n_channels,chunk_size_others))
+    d_daq_energy    = d_create(g_daq, "daq_energies", waveform_type, ((daq_n_channels,start_n_events),(daq_n_channels,n_max_events)), "chunk", (daq_n_channels,chunk_size_others))
     if waveform_format == :integers
         if compress
-            d_daq_pulses = d_create(g_daq, "daq_pulses", Int32, ((daq_n_samples,daq_n_channels,start_n_events),(daq_n_samples,daq_n_channels,n_max_events)), "chunk", (daq_n_samples,daq_n_channels,chunk_size_pulses), "blosc", 3) # "shuffle", (), "deflate", 3  )
+            d_daq_pulses = d_create(g_daq, "daq_pulses", Float32, ((daq_n_samples,daq_n_channels,start_n_events),(daq_n_samples,daq_n_channels,n_max_events)), 
+                                            "chunk", (daq_n_samples,daq_n_channels,chunk_size_pulses), "shuffle", (), "deflate", 3  )
         else
             d_daq_pulses = d_create(g_daq, "daq_pulses", Int32, ((daq_n_samples,daq_n_channels,start_n_events),(daq_n_samples,daq_n_channels,n_max_events)), "chunk", (daq_n_samples,daq_n_channels,chunk_size_pulses) )
         end
     end
 
-    temp_event_number = zeros(Int32, chunk_n_events)
-    temp_daq_energy = zeros(Int32, daq_n_channels, chunk_n_events)
-    temp_daq_time = zeros(Float64, 1, chunk_n_events)
-    if waveform_format == :integers
-        global temp_daq_pulses
-        temp_daq_pulses = zeros(Int32, daq_n_samples, daq_n_channels, chunk_n_events)
-    end
+    temp_event_number::Array{Int32, 1}  = zeros(Int32, chunk_n_events)
+    temp_daq_energy::Array{Float64, 2}  = zeros(Int32, daq_n_channels, chunk_n_events)
+    temp_daq_time::Array{Float64, 2} = zeros(Float64, 1, chunk_n_events)
+    temp_daq_pulses::Array{waveform_type, 3} = zeros(waveform_type, daq_n_samples, daq_n_channels, chunk_n_events)
+    
     i_sub_buffer::Int = 1
     evt_sub_no::Int = 0
 
@@ -257,7 +266,7 @@ function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samp
                 if waveform_format == :integers
                     if length(raw_wf_smpl_v) == daq_n_samples*daq_n_channels  # ==25000
                         @inbounds for ich in 1:daq_n_channels # == 5
-                            temp_daq_pulses[:,ich,evt_sub_no] = raw_wf_smpl_v[(ich-1)*daq_n_samples+1:ich*daq_n_samples]
+                            temp_daq_pulses[:,ich,evt_sub_no] = waveform_type.(raw_wf_smpl_v[(ich-1)*daq_n_samples+1:ich*daq_n_samples])
                         end
                     end
                 end
@@ -275,7 +284,7 @@ function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samp
                     temp_event_number = zeros(Int32, chunk_n_events)
                     temp_daq_energy = zeros(Int32, daq_n_channels, chunk_n_events)
                     temp_daq_time = zeros(Float64, 1, chunk_n_events)
-                    temp_daq_pulses = zeros(Int32, daq_n_samples, daq_n_channels, chunk_n_events)
+                    temp_daq_pulses = zeros(waveform_type, daq_n_samples, daq_n_channels, chunk_n_events)
                 end
             else
                 number_of_corrupted_events+=1

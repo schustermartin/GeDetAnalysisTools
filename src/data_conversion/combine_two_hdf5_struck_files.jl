@@ -202,7 +202,7 @@ function combine_two_hdf5_files(fn1::AbstractString, fn2::AbstractString, ofn::A
 end
 
 function two_sis3316_to_hdf5(fn1::AbstractString, fn2::AbstractString; evt_merge_window::AbstractFloat = 100e-9, waveform_format = :none,
-                                                                        overwrite = false, chunk_n_events::Int=1000, keep_individual_hdf5_files::Bool=false)
+                                                                        overwrite = false, chunk_n_events::Int=1000, keep_individual_hdf5_files::Bool=false, waveform_type::DataType = Int32)
     reg_adc_unit = r"adc1-"
     occursin(reg_adc_unit, fn1) ? nothing : error("filename '$fn1' does not contain 'adc1-'")
     tmpidx = match(reg_adc_unit, fn1).offset
@@ -217,9 +217,9 @@ function two_sis3316_to_hdf5(fn1::AbstractString, fn2::AbstractString; evt_merge
         return ofn
     end
     @info "convert adc1 file:"
-    ofn1 = sis3316_to_hdf5(fn1, evt_merge_window=evt_merge_window, waveform_format=waveform_format, compress=false, overwrite=overwrite, use_true_event_number=true, chunk_n_events=chunk_n_events)
+    ofn1 = sis3316_to_hdf5(fn1, evt_merge_window=evt_merge_window, waveform_format=waveform_format, compress=false, overwrite=overwrite, use_true_event_number=true, chunk_n_events=chunk_n_events, waveform_type = waveform_type)
     @info "convert adc2 file:"
-    ofn2 = sis3316_to_hdf5(fn2, evt_merge_window=evt_merge_window, waveform_format=waveform_format, compress=false, overwrite=overwrite, use_true_event_number=true, chunk_n_events=chunk_n_events)
+    ofn2 = sis3316_to_hdf5(fn2, evt_merge_window=evt_merge_window, waveform_format=waveform_format, compress=false, overwrite=overwrite, use_true_event_number=true, chunk_n_events=chunk_n_events, waveform_type = waveform_type)
     @info "merge them:"
     combine_two_hdf5_files(ofn1, ofn2, ofn, overwrite=overwrite, chunk_n_events=chunk_n_events)
     if !keep_individual_hdf5_files

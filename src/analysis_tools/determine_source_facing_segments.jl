@@ -20,8 +20,8 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 		end
 	end
 
-	par_names = ["Scale", "σ", "Offset"] #, "Slope"]
-	init_fit_parameters = T[ min_amplitude, 1.0, 0.0] #, 0.]
+	# par_names = ["Scale", "σ", "Offset"] #, "Slope"]
+	# init_fit_parameters = T[ min_amplitude, 1.0, 0.0] #, 0.]
 	@fastmath function f(x::T, par::Array{T, 1})::T
 		if par[1] < 0 || par[2] < 0.6 || par[2] > 5.0 || par[3] < 0 return NaN end
 		return par[1] / (sqrt(2 * π * par[2]^2)) * exp(-0.5 * (x^2) / (par[2]^2)) + par[3]# + par[4] * x
@@ -30,30 +30,30 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 
 	fit_functions = RadiationSpectra.FitFunction[]
 	for ichn in 1:n_channel
-		fitf = RadiationSpectra.FitFunction( f  )
-		fitf.fitrange = (-5, 5)
-		fitf.initial_parameters = init_fit_parameters
-		fitf.initial_parameters[3] = mean(ehists[ichn].weights[1:4])
-
+		fitf = RadiationSpectra.FitFunction{T}( f, 1, 3  )
+		set_fitranges!(fitfunc, ((-5, 5),) )
+		p0 = (
+			scale = min_amplitude, 
+			σ = 1.0, 
+			offset = mean(ehists[ichn].weights[1:4])
+		)
+		set_initial_parameters!(fitf, p0)
 		push!(fit_functions, fitf)
 	end
-	# funcs = [MFunction("Gauss fixed at zero plus first order polynomial", init_fit_parameters, par_names, f) for ichn in 1:n_channel]
-	# frs = []
- 	# fit_results = GeDetSpectrumAnalyserTmp.Fit[]
-
+	
 	σ_core::T = 1.
 	offset_core::T = 0.
 	for ichn in 1:n_channel
-		# fit_result = GeDetSpectrumAnalyserTmp.fit(ehists[ichn], -10:10, funcs[ichn].f, funcs[ichn].par, estimate_uncertainties=false)
 		RadiationSpectra.lsqfit!(fit_functions[ichn], ehists[ichn])
+		fitted_pars = collect(get_fitted_parameters(fit_functions[ichn]))
 		# funcs[ichn].par = fit_result.parameters
 		if ichn == 1
-			σ_core = abs(fit_functions[ichn].parameters[2])
-			offset_core = fit_functions[ichn].parameters[3]
+			σ_core = abs(fitted_pars[2])
+			offset_core = fitted_pars[3]
 		end
-		σ = abs(fit_functions[ichn].parameters[2])
-		scale = fit_functions[ichn].parameters[1] # scale
-		offset = fit_functions[ichn].parameters[3]
+		σ = abs(fitted_pars[2])
+		scale = fitted_pars[1] # scale
+		offset = fitted_pars[3]
 		bg_area = 2 * 2σ_core * offset_core
 		sno = scale / (2 * 2σ * offset)
 		sno_to_core = scale / bg_area

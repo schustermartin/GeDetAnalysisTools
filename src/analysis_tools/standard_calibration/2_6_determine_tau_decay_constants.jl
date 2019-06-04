@@ -9,16 +9,17 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
 
     time_array_of_pulses = get_time_array_of_pulses(m.daq)
     decay_window_start_index = m.daq.n_samples-m.daq.decay_window_length+1
-    xarr = time_array_of_pulses[decay_window_start_index:take_every_n_sample_for_fit:end]
-    dataarr::Array{Float64, 1} = zeros(Float64, length(xarr)) # must be Float64 due LsqFit...
-    init_params::Array{Float64, 1} = zeros(Float64, 2) # must be Float64 due LsqFit...
+    xarr::Vector{T} = time_array_of_pulses[decay_window_start_index:take_every_n_sample_for_fit:end]
+    dataarr::Vector{T} = zeros(T, length(xarr)) # must be Float64 due LsqFit...
+    init_params::Vector{T} = zeros(T, 2) # must be Float64 due LsqFit...
 
     init_decay_rate = Float64(50.0 / 1e6)
 
-    tdc::T = 0
     core::UInt8 = 1
+    tdc_factor::T = 1e6
 
-    fitf = RadiationSpectra.FitFunction(  exponential_decay )
+    fitf = RadiationSpectra.FitFunction{T}(  exponential_decay, 1, 2 )
+    set_fitranges!(fitf, ( (xarr[1], xarr[end]), ))
 
     @info "Tau Decay Fitting: $n_total_events events to process"
 
@@ -53,14 +54,11 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
                             daq_pulses_evt = T.(chunk_pulses[:,:,event])
                             for ichn in eachindex(1:n_channel)
                                 baseline::T = mean(T, daq_pulses_evt[1:m.daq.baseline_length, ichn])
-                                dataarr[:] = Float64.(daq_pulses_evt[decay_window_start_index:take_every_n_sample_for_fit:end, ichn] .- baseline) # must be Float64 due LsqFit...
+                                dataarr[:] = T.(daq_pulses_evt[decay_window_start_index:take_every_n_sample_for_fit:end, ichn] .- baseline) # must be Float64 due LsqFit...
                                 # init_params[:] = [dataarr[1], init_decay_rate] # must be Float64 due LsqFit...
-
-                                fitf.initial_parameters =  [dataarr[1], init_decay_rate]
+                                set_initial_parameters!(fitf, [dataarr[1], init_decay_rate])
                                 RadiationSpectra.lsqfit!(fitf, xarr, dataarr)
-                                tdc = 1f6 * fitf.parameters[2]
-                                # tdc = 1f6 * T( GeDetSpectrumAnalyserTmp.LSQFIT( xarr, dataarr, exponential_decay, init_params, estimate_uncertainties=false).parameters[2] )
-                                tdcs[ichn, event] = tdc
+                                tdcs[ichn, event] = tdc_factor * fitf.fitted_parameters[2]
                             end
                         end
                         for i in eachindex(tdcs)
@@ -75,35 +73,7 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
                     end
                 end
             else # old pulse format
-                @warn "old pulse format not yet tested"
-                @fastmath @inbounds begin
-                    @showprogress for evt_range in evt_ranges
-                        chunk_pulses::Array{T, 3} = d_daq_pulses[: , :, evt_range]
-                        tdcs::Array{T, 2} = zeros(T, n_channel, length(evt_range))
-                        for event in 1:length(evt_range)
-                            daq_pulses_evt = T.(transpose(chunk_pulses[:,:,event]))
-                            for ichn in eachindex(1:n_channel)
-                                baseline::T = mean(T, daq_pulses_evt[1:m.daq.baseline_length, ichn])
-                                dataarr[:] = Float64.(daq_pulses_evt[decay_window_start_index:take_every_n_sample_for_fit:end, ichn] .- baseline) # must be Float64 due LsqFit...
-                                init_params[:] = [dataarr[1], init_decay_rate] # must be Float64 due LsqFit...
-                                fitf.initial_parameters = init_params
-                                RadiationSpectra.lsqfit!(fitf, xarr, dataarr)
-                                tdc = 1f6 * fitf.parameters[2]
-                                # tdc = 1f6 * T( GeDetSpectrumAnalyserTmp.LSQFIT( xarr, dataarr, exponential_decay, init_params, estimate_uncertainties=false).parameters[2] )
-                                tdcs[ichn, event] = tdc
-                            end
-                        end
-                        for i in eachindex(tdcs)
-                            if isnan(tdcs[i])
-                                tdcs[i]::T = 0
-                            end
-                            if isinf(tdcs[i])
-                                tdcs[i]::T = 0
-                            end
-                        end
-                        d_tau_decay_constants[:, evt_range] = tdcs
-                    end
-                end
+                @error("Old pulse format: Not supported anymore. Reconvert data")
             end
 
             close(h5f)
@@ -136,6 +106,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
             n_channel, n_events = size(d_energies)
             chunk_n_events = get_chunk(d_energies)[end]
 
+            n_events = 1000
             evt_ranges = event_range_iterator(n_events, chunk_n_events)
             @fastmath @inbounds begin
                 # @showprogress for evt_range in evt_ranges
@@ -163,10 +134,11 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
         end
     end
 
+    T = Float64
     # fit_results = GeDetSpectrumAnalyserTmp.Fit[]
     fit_results = RadiationSpectra.FitFunction[]
     for ichn in eachindex(1:n_channel)
-        fitf = RadiationSpectra.FitFunction( scaled_cauchy )
+        fitf = RadiationSpectra.FitFunction{T}( scaled_cauchy, 1, 3 )
         try
             h = hists[ichn]
             mp = midpoints(h.edges[1])
@@ -177,24 +149,17 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
             σ::Float64 = 0.5 * std(h, mean=μ)
             A::Float64 = sum(h.weights)
             p0::Array{Float64, 1} = [ A, σ, μ ]
-            fitf.fitrange = fitrange
-            fitf.initial_parameters = p0
+            set_fitranges!(fitf, (fitrange, ))
+            set_initial_parameters!(fitf, p0)
             RadiationSpectra.lsqfit!(fitf, h)
             # fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, p0)
             push!(fit_results, fitf)
             # push!(fit_results, fr)
         catch err
             h = hists[ichn]
-            fitf.fitrange = (35, 65)
-            @show maximum(h.weights)
-            fitf.initial_parameters = Float64[maximum(h.weights), 1, 50]
-            try
-                RadiationSpectra.lsqfit!(fitf, h, estimate_uncertainties = true)
-            catch err
-                RadiationSpectra.lsqfit!(fitf, h, estimate_uncertainties = false)
-                fitf.uncertainties = eltype(fitf.uncertainties)[-1, -1, -1, -1]
-            end
-            # fr = GeDetSpectrumAnalyserTmp.Fit(scaled_cauchy, 0.0:100.0, Float64[1,1,0], Float64[-1,-1,-1], Float64[1,1,0], missing)
+            set_fitranges!(fitf, ((35, 65), ))
+            set_initial_parameters!(fitf, [maximum(h.weights), 1, 50])
+            RadiationSpectra.lsqfit!(fitf, h)
             push!(fit_results, fitf)
         end
     end
@@ -202,17 +167,15 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
         det = m.detector
         p = histogramdisplay(hists, det)
         for (i, fr) in enumerate(fit_results)
-            plotrange = fr.parameters[3] - 4 * fr.parameters[2], fr.parameters[3] + 4 * fr.parameters[2]
+            plotrange = fr.fitted_parameters[3] - 4 * fr.fitted_parameters[2], fr.fitted_parameters[3] + 4 * fr.fitted_parameters[2]
             plot!(p, fr, subplot=det.channel_display_order[i])#, xlims=plotrange)
         end
         savefig(m, p, "2_5_tau_decay_constants", "tau_decay_constants", fmt=:png); p = 0;
     end
-    tdcs::Array{Float64, 1} = [ fr.parameters[3] for fr in fit_results ]
-    # for fr in fit_results GeDetSpectrumAnalyserTmp.estimate_uncertainties!(fr) end
-    tdcs_err::Array{Float64, 1} = [ fr.uncertainties[3] for fr in fit_results ]
+    tdcs::Array{Float64, 1} = [ fr.fitted_parameters[3] for fr in fit_results ]
 
     if create_plots
-        p = plot(tdcs, yerr=tdcs_err, st=:scatter, title="Tau Decay Constants", ylabel="τ / μs", xlabel="Channel Index", size=(1200,600), label="τ's")
+        p = plot(tdcs, st=:scatter, title="Tau Decay Constants", ylabel="τ / μs", xlabel="Channel Index", size=(1200,600), label="τ's")
         tdcs_init = read_analysis_result_dataset(m, "init_tau_decay_constants")
         tdcs_init_err = read_analysis_result_dataset(m, "init_tau_decay_constants_err")
         for i in eachindex(tdcs_init_err) if tdcs_init_err[i] < 0 tdcs_init_err[i] = 0 end end
@@ -221,5 +184,5 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
     end
 
 
-    return tdcs, tdcs_err, hists, fit_results
+    return tdcs, hists, fit_results
 end

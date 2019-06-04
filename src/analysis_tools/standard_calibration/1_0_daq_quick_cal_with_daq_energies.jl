@@ -59,15 +59,23 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement; photon_l
 			h = cal_ratio_hists[iseg]
 			mp = (h.edges[1][1:length(h.edges[1])-1] .+ 0.5 * step(h.edges[1]))
 			cal_peak_idx = findmax(h.weights)[2]
-			init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[cal_peak_idx] ]
+			# init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[cal_peak_idx] ]
 			fitrange = (mp[cal_peak_idx] - 3 * step(h.edges[1])), (mp[cal_peak_idx] + 3 * step(h.edges[1]))
-			fitf = RadiationSpectra.FitFunction( scaled_cauchy )
-			fitf.initial_parameters = init_fit_params
-			fitf.fitrange = fitrange
+			fitf = RadiationSpectra.FitFunction{Float64}( scaled_cauchy, 1, 3 )
+			p0 = (
+				scale =  h.weights[cal_peak_idx] * 2π * step(h.edges[1]),
+				σ = 2 * step(h.edges[1]),
+				μ = mp[cal_peak_idx] 
+			)
+			set_initial_parameters!(fitf, p0)
+			set_fitranges!(fitf, ( ((mp[cal_peak_idx] - 3 * step(h.edges[1])), (mp[cal_peak_idx] + 3 * step(h.edges[1]))), ))
+			# fitf.initial_parameters = init_fit_params
+			# fitf.fitrange = fitrange
+
 			RadiationSpectra.lsqfit!(fitf, h)
 	        # fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, init_fit_params)
 	        # cal_peak_pos[iseg] = fr.parameters[3]
-	        cal_peak_pos[iseg] = fitf.parameters[3]
+	        cal_peak_pos[iseg] = fitf.fitted_parameters[3]
 		end
 
 		# Calibration Matrix

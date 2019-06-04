@@ -1,13 +1,8 @@
-function quality_check(	m::Measurement;	overwrite=false,qual_photon_lines=[])
+function quality_check(	m::Measurement;	overwrite=false, quality_check_photon_lines=[])
 	energies = get_energies(m)
 	n_channel::Int, n_events::Int = size(energies)
 
-	# daqT = try
-	# 	GAT.read_analysis_result_dataset(m, "DAQ_Lifetime")
-	# catch err
-	# 	missing
-	# end
-
+	T = Float64
 	exists(m, "Results/DAQ_Lifetime") ? daqT = GAT.read_analysis_result_dataset(m, "DAQ_Lifetime") : daqT = missing
 
 	df = DataFrame( Isotope = String[],
@@ -19,7 +14,7 @@ function quality_check(	m::Measurement;	overwrite=false,qual_photon_lines=[])
 	push!(df, ["K40",   1460.830, :BackgroundPhotonLine ])
 	# push!(df, ["Bi214", 1764.494, :BackgroundPhotonLine ])
 	push!(df, ["Tl208", 2614.533, :BackgroundPhotonLine ])
-	photon_lines::Vector{Float64} = sort!(vcat([e for e in df[:Energy]],qual_photon_lines))
+	photon_lines::Vector{Float64} = sort!(vcat([e for e in df[:Energy]],quality_check_photon_lines))
 
 	photon_lines_fit_parameters_core::Array{Float64, 2} = zeros(Float64, 6, length(photon_lines))
 	photon_lines_fit_parameters_sumseg::Array{Float64, 2} = zeros(Float64, 6, length(photon_lines))
@@ -55,16 +50,16 @@ function quality_check(	m::Measurement;	overwrite=false,qual_photon_lines=[])
 		coeff_1::Float64 = 0
 		# fitrange = pl - 10:pl + 10
 		fitrange = (pl - 10, pl + 10)
-		fitf_core = RadiationSpectra.FitFunction( gauss_plus_first_order_polynom )
-		fitf_core.fitrange = fitrange
-		fitf_core.initial_parameters = Float64[scale, σ, μ, coeff_0, coeff_1]
+		fitf_core = RadiationSpectra.FitFunction{T}( gauss_plus_first_order_polynom, 1, 5 )
+		set_fitranges!(fitf_core, (fitrange,))
+		set_initial_parameters!(fitf_core, [scale, σ, μ, coeff_0, coeff_1])
 		RadiationSpectra.lsqfit!(fitf_core, h_core)
 		# fr_core = GeDetSpectrumAnalyserTmp.fit(h_core, fitrange, gauss_plus_first_order_polynom, Float64[scale, σ, μ, coeff_0, coeff_1])
 
 		scale = maximum_counts_segs
-		fitf_segs = RadiationSpectra.FitFunction( gauss_plus_first_order_polynom )
-		fitf_segs.fitrange = fitrange
-		fitf_segs.initial_parameters = Float64[scale, σ, μ, coeff_0, coeff_1]
+		fitf_segs = RadiationSpectra.FitFunction{T}( gauss_plus_first_order_polynom, 1, 5 )
+		set_fitranges!(fitf_segs, (fitrange,))
+		set_initial_parameters!(fitf_segs, [scale, σ, μ, coeff_0, coeff_1])
 		RadiationSpectra.lsqfit!(fitf_segs, h_sumsegs)
 		# fr_segs = GeDetSpectrumAnalyserTmp.fit(h_sumsegs, fitrange, gauss_plus_first_order_polynom, Float64[scale, σ, μ, coeff_0, coeff_1])
 
@@ -75,7 +70,7 @@ function quality_check(	m::Measurement;	overwrite=false,qual_photon_lines=[])
 		push!(p_peaks, p)
 		p_fr_result = plot(legend=false,grid=false,foreground_color_subplot=:white)
 		# pars = fr_core.parameters
-		pars = fitf_core.parameters
+		pars = collect(get_fitted_parameters(fitf_core))
 		photon_lines_fit_parameters_core[2:end, ipl] = pars
 
         # df[:FitParameters][1][1] = pars
@@ -89,7 +84,7 @@ function quality_check(	m::Measurement;	overwrite=false,qual_photon_lines=[])
 		annotate!(0.4, 0.65, "$(round(pars[3], digits=1))")
 		annotate!(0.4, 0.50, "$(round(pars[2], digits=1))")
 		annotate!(0.4, 0.35, "$(round(pars[1], digits=1))")
-		pars = fitf_segs.parameters
+		pars = collect(get_fitted_parameters(fitf_segs) )
 		photon_lines_fit_parameters_sumseg[2:end, ipl] = pars
 
 	# 	df[ipl, 4][:, end]  = pars
