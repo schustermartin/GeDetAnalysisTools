@@ -93,12 +93,11 @@ function determine_baseline_information(m::Measurement)
     return nothing
 end
 
-function flag_pileup_events(m, threshold = missing, channel::Int=1; overwrite = false)
+function flag_pileup_events(m, threshold = missing, channel::Int=1)
     !exists(m,"Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
     n_total_events = get_number_of_events(m)
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     core::UInt8 = 1
-    if overwrite
     for (fi, f) in enumerate(inputfiles)
         h5f = h5open(f, "r+")
         try
