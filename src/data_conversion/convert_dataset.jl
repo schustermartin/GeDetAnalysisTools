@@ -44,7 +44,7 @@ function convert_data_files_sis3316_to_hdf5( raw_dir = pwd();
 
     pmap( process_file, sis_files )
 
-    run(`chmod -Rf ug+rw ../`)
+    # run(`chmod -Rf ug+rw ../`)
 
     cd(current_dir)
     return nothing

@@ -201,7 +201,7 @@ function combine_two_hdf5_files(fn1::AbstractString, fn2::AbstractString, ofn::A
     return ofn
 end
 
-function two_sis3316_to_hdf5(fn1::AbstractString, fn2::AbstractString; evt_merge_window::AbstractFloat = 100e-9, waveform_format = :none,
+function two_sis3316_to_hdf5(fn1::AbstractString, fn2::AbstractString; evt_merge_window::AbstractFloat = 100e-9, waveform_format = :waveform_format,
                                                                         overwrite = false, chunk_n_events::Int=1000, keep_individual_hdf5_files::Bool=false, waveform_type::DataType = Int32)
     reg_adc_unit = r"adc1-"
     occursin(reg_adc_unit, fn1) ? nothing : error("filename '$fn1' does not contain 'adc1-'")
@@ -299,7 +299,7 @@ function twostrucks_convert_all_data_files_in_raw_data_folder(raw_dir=pwd(); ove
 
     pmap( process_file_idx,  1:length(fn1_dat_files) )
 
-    run(`chmod -R ug+rw ../`)
+    # run(`chmod -R ug+rw ../`)
 
     cd(current_dir)
     return nothing

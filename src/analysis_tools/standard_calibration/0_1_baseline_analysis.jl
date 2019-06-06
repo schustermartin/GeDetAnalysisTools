@@ -34,7 +34,7 @@ function determine_baseline_information(m::Measurement)
     # slope_w2::UnitRange = bl - slope_length:bl
     # slope_length_inv::T = 1 / slope_length
 
-    for f in inputfiles[1:1]
+    for f in inputfiles
         new_pulse_format = is_new_pulse_format(f)
         if !new_pulse_format error("Measurement $(m.name) does not have new pulse format. Old one ist not implemented yet.") end
         h5f = h5open(f, "r+")
@@ -51,7 +51,7 @@ function determine_baseline_information(m::Measurement)
             if exists(g_pd, "baseline_rms") o_delete(g_pd, "baseline_rms") end
             d_baseline_offset = d_create(g_pd, "baseline_offset", Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
             d_baseline_slope  = d_create(g_pd, "baseline_slope",  Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
-            d_baseline_rms = d_create(g_pd, "baseline_rms",    Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
+            d_baseline_rms    = d_create(g_pd, "baseline_rms",    Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
 
             # n_events = 2000 # debugging
 
@@ -61,9 +61,9 @@ function determine_baseline_information(m::Measurement)
                 chunk_slopes = Array{T, 2}(undef, n_channel, chunksize[2])
                 chunk_rms = Array{T, 2}(undef, n_channel, chunksize[2])
                 chunk_pulses = Array{T, 3}(undef, n_samples, n_channel, chunksize[2])
-                # @showprogress for evt_range in event_range_iterator(n_events, chunksize[2])
-                for evt_range in event_range_iterator(n_events, chunksize[2])
-                    @info evt_range
+                @showprogress for evt_range in event_range_iterator(n_events, chunksize[2])
+                # for evt_range in event_range_iterator(n_events, chunksize[2])
+                    # @info evt_range
                     levtr::Int = length(evt_range)
                     chunk_pulses[:, :, 1:levtr]  = d_daq_pulses[:, :, evt_range]
                     for i in 1:levtr

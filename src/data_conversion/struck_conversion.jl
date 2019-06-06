@@ -74,7 +74,7 @@ function get_conv_data_hdf5_filename(fn::AbstractString)::String
     return ofn
 end
 
-function sis3316_to_hdf5(ifn::AbstractString;   evt_merge_window::AbstractFloat = 100e-9, waveform_format = :none, 
+function sis3316_to_hdf5(ifn::AbstractString;   evt_merge_window::AbstractFloat = 100e-9, waveform_format = :integers, 
                                                 compress=true, overwrite=false, use_true_event_number=false,              
                                                 chunk_n_events::Int=1000, waveform_type::DataType = Int32) 
     # if endswith(ifn, "bz2")
@@ -108,7 +108,7 @@ end
 
 
 function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samples_per_channel = 5000, evt_merge_window::AbstractFloat = 100e-9, 
-                                                            waveform_format = :none, compress=true, use_true_event_number=false,
+                                                            waveform_format = :integers, compress=true, use_true_event_number=false,
                                                             chunk_n_events::Int=100, waveform_type::DataType = Int32)
   	_time(x::Pair{Int64, SIS3316.RawChEvent}) = time(x.second)
 
