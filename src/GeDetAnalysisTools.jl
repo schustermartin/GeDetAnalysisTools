@@ -31,6 +31,7 @@ module GeDetAnalysisTools
     import Plots: xlims, xlims!, ylims, ylims!
     import Plots: annotate!
     import Plots: png, pdf, eps
+    import Plots: vline!, hline!
 
     import LegendHDF5IO: readdata, writedata
 
@@ -46,6 +47,9 @@ module GeDetAnalysisTools
 
     const USER_DATA_PATH   = ENV["GEDET_USER_DATA_PATH"]   # e.g.: export GEDET_USER_DATA_PATH="/remote/ceph/group/gedet/data/lab"
     const USER_OUTPUT_PATH = ENV["GEDET_USER_OUTPUT_PATH"] # e.g.: export GEDET_USER_OUTPUT_PATH="/remote/ceph/user/l/lhauert/analysis_directory"
+
+    const NoPileUpFlag = UInt8(0)
+    const PileUpFlag = UInt8(1)
 
     include("types/DAQ.jl")
     include("types/Detector.jl")
