@@ -91,7 +91,7 @@ function Ponama()
     d.channel_display_order = [1]
     d.channel_display_layout = [1]
     function layout_func()
-        return @layout (1,)
+        return @layout (1,1)
     end
     d.channel_plot_layout = layout_func
     return d

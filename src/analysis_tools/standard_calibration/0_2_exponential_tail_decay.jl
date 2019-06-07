@@ -84,3 +84,39 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
     end
     return nothing
 end
+
+
+function plot_individual_tail_decay_constants(m::Measurement)
+    T::DataType = get_eltype_of_dataset(m, "Processed_data", "tau_decay_constants")
+    n_events::Int = get_number_of_events(m)
+    n_channel::Int = get_number_of_channel(m)
+
+    tdcs::Array{T, 2} = Array{T, 2}(undef, n_events, n_channel)
+
+    last_event_idx::Int = 0
+    for fn in GAT.gather_absolute_paths_to_hdf5_input_files(m)
+        h5open(fn, "r") do h5f
+            g_pd = g_open(h5f, "Processed_data")
+            d_tdcs = d_open(g_pd, "tau_decay_constants")
+            n_events_in_file::Int = size(d_tdcs, 2)
+            evt_range::UnitRange{Int} = last_event_idx+1:n_events_in_file         
+            tdcs[evt_range, :] = read(d_tdcs)'
+        end
+    end
+    harm_means::Vector{T} = [harmmean(tdcs[:, ichn]) for ichn in 1:n_channel]
+    std_harm_means::Vector{T} = [harmmean(tdcs[:, ichn] .- harm_means[ichn]) for ichn in 1:n_channel]
+    ranges = [harm_means[ichn] - 20std_harm_means[ichn]:std_harm_means[ichn]/5:harm_means[ichn] + 20std_harm_means[ichn] for ichn in 1:n_channel]
+    h_tdcs::Vector{Histogram} = Histogram[ fit(Histogram, tdcs[:, ichn], ranges[ichn]) for ichn in 1:n_channel]
+    
+    plts = [ plot(h_tdcs[ichn], st=:step, label = "Chn $(ichn)", xlabel = "τ / μs", ylabel = "Counts") for ichn in 1:n_channel ]
+    p_1d_hists = plot(plts..., legendfontsize = 14, guidefontsize = 14, tickfontsize = 12, titlefontsize = 14)
+    savefig(m, p_1d_hists, "0_2_exponential_tail_decay", "decay_constant_distributions", fmt=:png )        
+    
+    daq_energies::Array{T, 2} = get_daq_energies(m)'
+    
+    h_tdcs_vs_energy::Vector{Histogram} = Histogram[ fit(Histogram, (daq_energies[:, ichn], tdcs[:, ichn]), (0:maximum(daq_energies[:, ichn]) / 8000:maximum(daq_energies[:, ichn]), ranges[ichn])) for ichn in 1:n_channel]
+    plts = [ plot(h_tdcs_vs_energy[ichn], size = (1600, 400)) for ichn in 1:n_channel ]
+    p_hists_tdcs_vs_energy = plot(plts..., legendfontsize = 14, guidefontsize = 14, tickfontsize = 12, titlefontsize = 14)
+    savefig(m, p_hists_tdcs_vs_energy, "0_2_exponential_tail_decay", "decay_constant_over_energy_distributions", fmt=:png )        
+    p_hists_tdcs_vs_energy
+end
