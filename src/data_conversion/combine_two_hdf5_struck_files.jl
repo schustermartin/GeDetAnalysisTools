@@ -230,7 +230,9 @@ function two_sis3316_to_hdf5(fn1::AbstractString, fn2::AbstractString; evt_merge
     return ofn
 end
 
-function twostrucks_convert_all_data_files_in_raw_data_folder(raw_dir=pwd(); overwrite=false, evt_merge_window::AbstractFloat=100e-9, waveform_format=:integers, chunk_n_events::Int=100, keep_individual_hdf5_files::Bool = false, compress_raw_data::Bool = true)
+function twostrucks_convert_all_data_files_in_raw_data_folder(raw_dir=pwd(); overwrite=false, evt_merge_window::AbstractFloat=100e-9, 
+                                        waveform_format=:integers, chunk_n_events::Int=100, keep_individual_hdf5_files::Bool = false, compress_raw_data::Bool = true,
+                                        waveform_type::DataType = Int32)
     current_dir = pwd()
     cd(raw_dir)
 
@@ -280,6 +282,7 @@ function twostrucks_convert_all_data_files_in_raw_data_folder(raw_dir=pwd(); ove
             ofn_tmp = two_sis3316_to_hdf5(  ifn1, ifn2,
                                             evt_merge_window=evt_merge_window,
                                             waveform_format=waveform_format,
+                                            waveform_type = waveform_type,
                                             overwrite=overwrite,
                                             chunk_n_events=chunk_n_events,
                                             keep_individual_hdf5_files=keep_individual_hdf5_files)

@@ -8,44 +8,57 @@ function convert_data_files_sis3316_to_hdf5( raw_dir = pwd();
 
     all_files = readdir(raw_dir)
 
-    sis_files = filter(x -> occursin(".dat", x), all_files)
+    if any(fn -> occursin("-adc", fn), all_files)
+        @info "Detected multi STRUCK dataset"
+        twostrucks_convert_all_data_files_in_raw_data_folder(raw_dir, overwrite = overwrite, evt_merge_window = evt_merge_window, waveform_format = waveform_format,
+                                                                waveform_type = waveform_type, chunk_n_events = chunk_n_events, keep_individual_hdf5_files = keep_individual_hdf5_files,
+                                                                compress_raw_data = compress_raw_data )
+    else
+        sis_files = filter(x -> occursin(".dat", x), all_files)
 
-    function process_file( fn::AbstractString )
-        cd(raw_dir)
-        ofn = joinpath("../conv_data", get_conv_data_hdf5_filename(fn))
-        @show ofn
-        if !isfile(ofn) || overwrite
-            file_is_compressed::Bool = endswith(fn, ".bz2")
-            if file_is_compressed
-                @info "Now on $(myid()): Decompressing file `fn`"
-                file_is_compressed = true
-                decompress_file(fn, overwrite = true, keep_input_files = true)
+        function process_file( fn::AbstractString )
+            cd(raw_dir)
+            ofn = joinpath("../conv_data", get_conv_data_hdf5_filename(fn))
+            @show ofn
+            if !isfile(ofn) || overwrite
+                file_is_compressed::Bool = endswith(fn, ".bz2")
+                if file_is_compressed
+                    @info "Now on $(myid()): Decompressing file `fn`"
+                    file_is_compressed = true
+                    decompress_file(fn, overwrite = true, keep_input_files = true)
+                end
+
+                @info "Now on $(myid()): converting to $(ofn))"
+                ofn_tmp = sis3316_to_hdf5(  fn,
+                                            evt_merge_window=evt_merge_window,
+                                            waveform_format=waveform_format,
+                                            overwrite=overwrite,
+                                            chunk_n_events=chunk_n_events,
+                                            waveform_type = waveform_type)
+                mv(ofn_tmp, ofn, force = true )
+
+                if compress_raw_data
+                    @info "Now on $(myid()): Compression dat files."
+                    if (file_is_compressed && isfile(fn)) rm(fn) else compress_file(fn, keep_input_files=false) end
+                end
+
+                @info "Now on $(myid()): Finished with $(ofn)."
+            else
+                @info "Skipping $fn. Already converted."
             end
-
-            @info "Now on $(myid()): converting to $(ofn))"
-            ofn_tmp = sis3316_to_hdf5(  fn,
-                                        evt_merge_window=evt_merge_window,
-                                        waveform_format=waveform_format,
-                                        overwrite=overwrite,
-                                        chunk_n_events=chunk_n_events,
-                                        waveform_type = waveform_type)
-            mv(ofn_tmp, ofn, force = true )
-
-            if compress_raw_data
-                @info "Now on $(myid()): Compression dat files."
-                if (file_is_compressed && isfile(fn)) rm(fn) else compress_file(fn, keep_input_files=false) end
-            end
-
-            @info "Now on $(myid()): Finished with $(ofn)."
-        else
-            @info "Skipping $fn. Already converted."
         end
+
+        pmap( process_file, sis_files )
     end
-
-    pmap( process_file, sis_files )
-
     # run(`chmod -Rf ug+rw ../`)
-
     cd(current_dir)
     return nothing
+end
+
+function convert_data_files_sis3316_to_hdf5( d::Dataset;    overwrite=false, evt_merge_window::AbstractFloat=100e-9, waveform_format=:integers, 
+                                                            chunk_n_events::Int=100, keep_individual_hdf5_files::Bool = false, compress_raw_data::Bool = true, 
+                                                            waveform_type::DataType = Int32)
+    convert_data_files_sis3316_to_hdf5( get_path_to_raw_data(d),   overwrite = overwrite, evt_merge_window = evt_merge_window, waveform_format = waveform_format,
+                                                                    waveform_type = waveform_type, chunk_n_events = chunk_n_events, keep_individual_hdf5_files = keep_individual_hdf5_files,
+                                                                    compress_raw_data = compress_raw_data )                                             
 end
