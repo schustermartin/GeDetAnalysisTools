@@ -2,12 +2,12 @@ function recalculate_energies(m::Measurement, c::Array{<:Real, 2}; create_plots=
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     T = get_eltype_of_dataset(inputfiles[1], "Processed_data", "measured_pulse_amplitudes")
     n_channel = size(c, 1)
-
+    multi_channel_det::Bool = n_channel > 1
     c_transpose::Array{T, 2} = c'
 
     if create_plots
         hists = Histogram[ Histogram(0:1:6000, :left) for i in eachindex(1:n_channel)]
-        h_seg_sum = Histogram(0:1:6000, :left)
+        if multi_channel_det h_seg_sum = Histogram(0:1:6000, :left) end
     end
 
     for f in inputfiles
@@ -32,7 +32,7 @@ function recalculate_energies(m::Measurement, c::Array{<:Real, 2}; create_plots=
                     for i in eachindex(1:length(evt_range))
                         chunk_energies[:, i] = c_transpose * chunk_mpas[:, i]
                         if create_plots
-                            push!(h_seg_sum, sum(chunk_energies[2:end, i]))
+                            if multi_channel_det push!(h_seg_sum, sum(chunk_energies[2:end, i])) end
                         end
                     end
                     if create_plots
@@ -57,7 +57,7 @@ function recalculate_energies(m::Measurement, c::Array{<:Real, 2}; create_plots=
         savefig(m, p, "2_4_recalculated_energies", "energy_spectra", fmt=:png); p = 0;
 
         p = plot(hists[1], st=:step, label="Core", xlabel="E / keV", size=(1600,900), yscale=:log10)
-        plot!( h_seg_sum, st=:step, yscale=:log10, ylabel="Summed Segments"  )
+        if multi_channel_det plot!( h_seg_sum, st=:step, yscale=:log10, ylabel="Summed Segments"  ) end
         plts = []
         photon_lines::Vector{Float64} = [609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533]
         for pl in photon_lines
@@ -66,7 +66,7 @@ function recalculate_energies(m::Measurement, c::Array{<:Real, 2}; create_plots=
             idx1 = StatsBase.binindex(hists[1], xl[1])
             idx2 = StatsBase.binindex(hists[1], xl[2])
             ymax1 = maximum(hists[1].weights[idx1:idx2])
-            ymax2 = maximum(h_seg_sum.weights[idx1:idx2])
+            ymax2 = multi_channel_det ? maximum(h_seg_sum.weights[idx1:idx2]) : ymax1
             ymax = max(ymax1, ymax2)
             p_tmp = plot(p_tmp, xlims=xl, xticks=3, legend=false, yscale=:identity, ylims=Float64[0, ymax])
             push!(plts, p_tmp)
