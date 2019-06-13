@@ -19,7 +19,7 @@ module GeDetAnalysisTools
     using ProgressMeter
     using RadiationSpectra 
     using RecipesBase
-    using SIS3316
+    using SIS3316Digitizers
     using SpecialFunctions
     using StaticArrays
     using Statistics

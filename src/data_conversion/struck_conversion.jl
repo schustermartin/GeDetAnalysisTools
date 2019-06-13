@@ -8,7 +8,7 @@ end
 function sis3316_get_nchannel(ifn::AbstractString)::Int
     input_io = open(CompressedFile(ifn), "r")
     n_channel::Int = 0
-    for unsorted in eachchunk(input_io, SIS3316.UnsortedEvents)
+    for unsorted in eachchunk(input_io, SIS3316Digitizers.UnsortedEvents)
         for (ch, events) in unsorted
             if !isempty(events) n_channel += 1 end
         end
@@ -20,9 +20,9 @@ function sis3316_get_nsamples(ifn::AbstractString; evt_merge_window::AbstractFlo
     input_io = open(CompressedFile(ifn), "r")
     n_channel::Int = 0
     n_samples::Int = 0
-    for unsorted in eachchunk(input_io, SIS3316.UnsortedEvents)
+    for unsorted in eachchunk(input_io, SIS3316Digitizers.UnsortedEvents)
         sorted = sortevents(unsorted, merge_window = evt_merge_window)
-        evtv = Vector{Pair{Int64, SIS3316.RawChEvent}}()
+        evtv = Vector{Pair{Int64, SIS3316Digitizers.RawChEvent}}()
         for evt in sorted
             n_samples = length(evt[1].samples)
             break
@@ -42,7 +42,7 @@ end
 function sis3316_get_nchunks(ifn::AbstractString)::Int
     input_io = open(CompressedFile(ifn), "r")
     n_chunks::Int = 0
-    for unsorted in eachchunk(input_io, SIS3316.UnsortedEvents)
+    for unsorted in eachchunk(input_io, SIS3316Digitizers.UnsortedEvents)
         n_chunks += 1
     end
     return n_chunks
@@ -110,7 +110,7 @@ end
 function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samples_per_channel = 5000, evt_merge_window::AbstractFloat = 100e-9, 
                                                             waveform_format = :integers, compress=true, use_true_event_number=false,
                                                             chunk_n_events::Int=100, waveform_type::DataType = Int32)
-  	_time(x::Pair{Int64, SIS3316.RawChEvent}) = time(x.second)
+  	_time(x::Pair{Int64, SIS3316Digitizers.RawChEvent}) = time(x.second)
 
     info_idx = Ref{Int32}(0)
     info_time =  Ref{Float64}(0)
@@ -139,7 +139,7 @@ function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samp
 
     for v in ch_sized_vecs sizehint!(v, n_channel) end  
 
-    reader_1 = eachchunk(input_io, SIS3316.UnsortedEvents)
+    reader_1 = eachchunk(input_io, SIS3316Digitizers.UnsortedEvents)
 
     evtno = 0
     number_of_corrupted_events = 0
@@ -188,13 +188,13 @@ function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samp
 			 # @info "Now processing chunk: $(chunk_i)"
     # 	end
         sorted = sortevents(unsorted, merge_window = evt_merge_window)
-        evtv = Vector{Pair{Int64, SIS3316.RawChEvent}}()
+        evtv = Vector{Pair{Int64, SIS3316Digitizers.RawChEvent}}()
         timestamps = Vector{Float64}()
 
-        energynull = SIS3316.EnergyValues(0, 0)
-        mawnull    = SIS3316.MAWValues(0, 0, 0)
-        psanull    = SIS3316.PSAValue(0, 0)
-        flagsnull  = SIS3316.EvtFlags(false, false, false, false)
+        energynull = SIS3316Digitizers.EnergyValues(0, 0)
+        mawnull    = SIS3316Digitizers.MAWValues(0, 0, 0)
+        psanull    = SIS3316Digitizers.PSAValue(0, 0)
+        flagsnull  = SIS3316Digitizers.EvtFlags(false, false, false, false)
 
         for evt in sorted
             evtno += 1
