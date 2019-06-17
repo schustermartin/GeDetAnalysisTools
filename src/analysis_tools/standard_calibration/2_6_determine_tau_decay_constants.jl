@@ -18,7 +18,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
             n_channel, n_events = size(d_energies)
             chunk_n_events = get_chunk(d_energies)[end]
 
-            n_events = 1000
+            # n_events = 1000
             evt_ranges = event_range_iterator(n_events, chunk_n_events)
             @fastmath @inbounds begin
                 # @showprogress for evt_range in evt_ranges

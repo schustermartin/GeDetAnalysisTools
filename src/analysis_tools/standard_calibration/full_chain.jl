@@ -24,7 +24,7 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 		println("using fitted tau decay times.")
 	end
 
-	if  !exists(m, "Results/init_tau_decay_constants") || overwrite_init_tdcs == true
+	if  !exists(m, "Results/init_tau_decay_constants") && overwrite_init_tdcs == false
 		if exists(m, "Processed_data/tau_decay_constants")
 			println("using fitted tau decay times from daq data")
 			# tdcs_daq, tdcs_daq_err, hists, fit_results = daq_determine_decay_time_constants(m)#, photon_lines = precal_photon_lines)

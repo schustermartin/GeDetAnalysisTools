@@ -7,25 +7,23 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
     core::UInt8 = 1
     fitted_tau_decay_constants::Array{Float64, 1} = Float64[ 0 for chn in 1:n_channel ]
     hists = Histogram[ Histogram(20:0.1:80, :left) for chn in 1:n_channel ]
+    d_energies = get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
+    total_evt_start_idx::Int = 0
 
     for (fi, f) in enumerate(inputfiles)
         h5f = h5open(f, "r+")
         try
             g_pd  = g_open(h5f, "Processed_data")
             d_tau_decay_constants = d_open(g_pd, "tau_decay_constants")
-            d_energies = get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
-            # d_ssidcs = d_open(g_pd, "single_segment_indices")
             T::Type = eltype(d_energies)
             energy_range = T.(energy_range)
-            n_events = size(d_energies)[end]
+            n_events_in_file = size(d_tau_decay_constants)[end]
             chunk_n_events = get_chunk(d_tau_decay_constants)[end]
             # n_events = 2000
-            evt_ranges = event_range_iterator(n_events, chunk_n_events)
+            evt_ranges = event_range_iterator(n_events_in_file, chunk_n_events)
             @fastmath @inbounds begin
                 @showprogress for evt_range in evt_ranges
-                # for evt_range in evt_ranges
-                    chunk_energies::Array{T, 2} = d_energies[:, evt_range]
-                    # chunk_ssi::Array{UInt8, 1} = d_ssidcs[evt_range]
+                    chunk_energies::Array{T, 2} = d_energies[:, total_evt_start_idx .+ evt_range]
                     chunk_tdcs::Array{T, 2} = d_tau_decay_constants[:, evt_range]
                     for event in 1:length(evt_range)
                         if multi_channel_det
@@ -46,6 +44,7 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
                     end
                 end
             end
+            total_evt_start_idx += n_events_in_file
             close(h5f)
         catch err
             close(h5f)

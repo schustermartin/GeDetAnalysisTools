@@ -98,7 +98,7 @@ function sis3316_to_hdf5(ifn::AbstractString;   evt_merge_window::AbstractFloat 
                                                             use_true_event_number=use_true_event_number, chunk_n_events=chunk_n_events, waveform_type = waveform_type)
 
         mv(output_tmpname, ofn, force = overwrite)
-        run(`chmod g+rw $ofn`) # give read+write rights for the group
+        # run(`chmod g+rw $ofn`) # give read+write rights for the group
         @info "Single file $(ofn) done!"
     else
         @info "Output file \"$(ofn)\" already exists, skipping \"$(ifn)\"."
