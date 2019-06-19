@@ -63,7 +63,7 @@ module GeDetAnalysisTools
 
     include("hdf5_data/hdf5_data.jl")
 
-    include("analysis_tools/analysis_tools.jl")
+    include("analysis_tools/0_0_analysis_tools.jl")
     
     include("plot_recipes/plot_recipes.jl")
     include("plot_recipes/plotting.jl")

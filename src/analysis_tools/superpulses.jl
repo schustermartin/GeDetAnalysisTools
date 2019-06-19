@@ -21,7 +21,6 @@ function determine_superpulse(m::Measurement, channels::Vector{Int}, energyrange
 	try 
 		g_daq = g_open(h5f, "DAQ_Data")
 		g_pd = g_open(h5f, "Processed_data")
-		g_results = g_open(h5f, "Processed_data")
 		d_energies = d_open(g_pd, "energies")
 		d_daq_pulses = d_open(g_daq, "daq_pulses")
 		n_samples, n_channel, n_events = size(d_daq_pulses)

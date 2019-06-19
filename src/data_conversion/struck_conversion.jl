@@ -77,12 +77,12 @@ end
 function sis3316_to_hdf5(ifn::AbstractString;   evt_merge_window::AbstractFloat = 100e-9, waveform_format = :integers, 
                                                 compress=true, overwrite=false, use_true_event_number=false,              
                                                 chunk_n_events::Int=1000, waveform_type::DataType = Int32) 
-    # if endswith(ifn, "bz2")
-    #     ofn = "$(ifn[1:end-4][1:first(findlast(".", ifn[1:end-4]))-1]).hdf5"
-    # else
-    # 	ofn = "$(ifn[1:first(findlast(".", ifn))-1]).hdf5"
-    # end
-    ofn = get_conv_data_hdf5_filename(ifn)
+    if endswith(ifn, "bz2")
+        ofn = "$(ifn[1:end-4][1:first(findlast(".", ifn[1:end-4]))-1]).hdf5"
+    else
+    	ofn = "$(ifn[1:first(findlast(".", ifn))-1]).hdf5"
+    end
+    # ofn = get_conv_data_hdf5_filename(ifn)
 
     if overwrite || !isfile(ofn)
         n_channel::Int = sis3316_get_nchannel(ifn)
