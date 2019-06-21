@@ -11,12 +11,12 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 											c0_pre = missing)::Nothing
 
 	println("now $(m.name)")
-	if (!exists(m, "Processed_data/tau_decay_constants")) && fit_individual_decay_time_constants
+	if (!exists(m, "Processed_data/tau_decay_constants")) || fit_individual_decay_time_constants
 		println("Determing individual decay time constants: $(m.name)")
 		determine_individual_decay_time_constants(m);
 	end
 
-	if exists(m, "Results/tau_decay_constants") && overwrite_init_tdcs == true
+	if exists(m, "Results/tau_decay_constants") && overwrite_init_tdcs == false
 		tdcs = read_analysis_result_dataset(m, "tau_decay_constants")
 		tdcs_err = read_analysis_result_dataset(m, "tau_decay_constants")
 		write_analysis_result_dataset(m, "init_tau_decay_constants", tdcs)
@@ -82,7 +82,6 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 	if overwrite || !exists(m, "Processed_data/single_segment_indices")
 		determine_single_channel_indices(m, c, ΔE=ssidcs_ΔE);
 	end
-
 
 	if (overwrite || !exists(m, "Results/tau_decay_constants"))
 		# tdcs, tdcs_err, hists, fit_results = determine_decay_time_constants(m; energy_range=200:3000)

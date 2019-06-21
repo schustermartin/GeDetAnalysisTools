@@ -23,16 +23,12 @@ end
 
 
 
-function determine_baseline_information(m::Measurement)
+function determine_baseline_information(m::Measurement; n_sigma::Real = 1.0)
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     T = Float32
     sampling_rate = T(m.daq.sampling_rate)
     bl = Int(m.daq.baseline_length )
     bl_inv = T(1 / bl)
-    # slope_length::Int = 100
-    # slope_w1::UnitRange = 1:slope_length
-    # slope_w2::UnitRange = bl - slope_length:bl
-    # slope_length_inv::T = 1 / slope_length
 
     for f in inputfiles
         new_pulse_format = is_new_pulse_format(f)
@@ -90,6 +86,7 @@ function determine_baseline_information(m::Measurement)
             error(err)
         end
     end
+    baseline_quality_plots(m, n_sigma = n_sigma)
     return nothing
 end
 
@@ -157,7 +154,7 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
             error(err)
         end
     end
-    baseline_quality_plots(m, n_sigma = n_sigma)
+
     @info "$(m.name) - $n_pile_up_events pile up events ($(round(100 * n_pile_up_events / n_total_events, digits = 3)) %)"
     return nothing
 end
@@ -202,7 +199,7 @@ function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
             error(err)
         end
     end
-    baseline_quality_plots(m, n_sigma = n_sigma)
+
     @info "$(m.name) - $n_pile_up_events pile up events ($(round(100 * n_pile_up_events / n_total_events, digits = 3)) %)"
     return nothing
 end
