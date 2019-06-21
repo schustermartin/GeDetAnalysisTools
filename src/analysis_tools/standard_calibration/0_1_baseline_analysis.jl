@@ -93,6 +93,29 @@ function determine_baseline_information(m::Measurement)
     return nothing
 end
 
+function unflag_events(m)
+    inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+    for (fi, f) in enumerate(inputfiles)
+        h5f = h5open(f, "r+")
+        try
+            g_pd  = g_open(h5f, "Processed_data")
+            d_pile_up_flag = if exists(g_pd, "event_flags")
+                d_open(g_pd, "event_flags")
+            else
+                d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
+            end
+
+            d_pile_up_flag[:] = HealtyEvent 
+
+            close(h5f)
+        catch err
+            close(h5f)
+            error(err)
+        end
+    end
+    return nothing
+end 
+
 function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
     !exists(m,"Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
@@ -118,9 +141,54 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
             pile_up_flags::Vector{UInt8} = zeros(UInt8, n_events)
 
             @inbounds for i in 1:n_events
-                if slopes[i] > d || slopes[i] < -d
+                if slopes[i] < -d
                     if pile_up_flags[i] & PileUpEvent == 0
                         pile_up_flags[i] += PileUpEvent::UInt8 #  = UInt8(1)
+                    end
+                end
+            end
+            d_pile_up_flag[:] = pile_up_flags
+            
+            n_pile_up_events += sum(pile_up_flags)
+            
+            close(h5f)
+        catch err
+            close(h5f)
+            error(err)
+        end
+    end
+    baseline_quality_plots(m, n_sigma = n_sigma)
+    @info "$(m.name) - $n_pile_up_events pile up events ($(round(100 * n_pile_up_events / n_total_events, digits = 3)) %)"
+    return nothing
+end
+function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
+    !exists(m,"Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
+    inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+    n_pile_up_events::Int = 0
+    n_total_events::Int = get_number_of_events(m)
+    for (fi, f) in enumerate(inputfiles)
+        h5f = h5open(f, "r+")
+        try
+            g_pd  = g_open(h5f, "Processed_data")
+            d_slopes = d_open(g_pd, "baseline_slope")
+            T::DataType = eltype(d_slopes)
+            σ::T = stdm(d_slopes[channel,:][1,:],0.0)
+            d::T = T(n_sigma * σ)
+            n_channel::Int, n_events::Int = size(d_slopes)
+            chunk_n_events::Int = get_chunk(d_slopes)[end]
+            d_pile_up_flag = if exists(g_pd, "event_flags")
+                d_open(g_pd, "event_flags")
+            else
+                d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
+            end
+
+            slopes::Vector{T} = read(d_slopes)[channel, :]
+            pile_up_flags::Vector{UInt8} = zeros(UInt8, n_events)
+
+            @inbounds for i in 1:n_events
+                if slopes[i] > d
+                    if pile_up_flags[i] & RisingBaselineEvent == 0
+                        pile_up_flags[i] += RisingBaselineEvent::UInt8 #  = UInt8(1)
                     end
                 end
             end
@@ -185,12 +253,12 @@ function baseline_quality_plots(m::Measurement; n_sigma::Real = 1.0)
             h_bl_rms = fit(Histogram, baseline_rms[:, ichn], 0:bl_rms_σ/500:bl_rms_μ + 2bl_rms_σ)
             p_h_bl_rms = plot(h_bl_rms, st=:step, yscale = :log10, xlabel = "Basline RMS / ADC counts", ylabel = "#Events", label = "")
             vline!([bl_rms_μ], label = "Mean", lw = 2.0, lc = :red)
-            xlims!(0, bl_rms_μ + 2bl_rms_σ)
+            xlims!(0, bl_rms_μ + 1bl_rms_σ)
         end
 
         begin # baseline slope
             bl_slope_μ::T, bl_slope_σ::T = mean_and_std(baseline_slopes[:, ichn])
-            h_bl_slopes = fit(Histogram, baseline_slopes[:, ichn], -10bl_slope_σ:bl_slope_σ/100:10bl_slope_σ)
+            h_bl_slopes = fit(Histogram, baseline_slopes[:, ichn], -25bl_slope_σ:bl_slope_σ/100:25bl_slope_σ)
             p_h_bl_slopes = plot(h_bl_slopes, st=:step, yscale = :log10, xlabel = "Basline slopes / (ADC counts / sample)", ylabel = "#Events", label = "")
             vline!([bl_slope_μ - n_sigma * bl_slope_σ, bl_slope_μ + n_sigma * bl_slope_σ], label = "Mean ± $(n_sigma)σ", lw = 2.0, lc = :red)
         end
