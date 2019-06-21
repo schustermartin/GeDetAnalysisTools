@@ -93,7 +93,6 @@ function determine_baseline_information(m::Measurement)
     return nothing
 end
 
-
 function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
     !exists(m,"Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
@@ -109,15 +108,20 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
             d::T = T(n_sigma * σ)
             n_channel::Int, n_events::Int = size(d_slopes)
             chunk_n_events::Int = get_chunk(d_slopes)[end]
-            if exists(g_pd, "pile_up_flags") o_delete(g_pd, "pile_up_flags") end
-            d_pile_up_flag = d_create(g_pd, "pile_up_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
+            d_pile_up_flag = if exists(g_pd, "event_flags")
+                d_open(g_pd, "event_flags")
+            else
+                d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
+            end
 
             slopes::Vector{T} = read(d_slopes)[channel, :]
             pile_up_flags::Vector{UInt8} = zeros(UInt8, n_events)
 
             @inbounds for i in 1:n_events
                 if slopes[i] > d || slopes[i] < -d
-                    pile_up_flags[i] = PileUpFlag::UInt8 #  = UInt8(1)
+                    if pile_up_flags[i] & PileUpEvent == 0
+                        pile_up_flags[i] += PileUpEvent::UInt8 #  = UInt8(1)
+                    end
                 end
             end
             d_pile_up_flag[:] = pile_up_flags
@@ -162,26 +166,18 @@ function baseline_quality_plots(m::Measurement; n_sigma::Real = 1.0)
             baseline_offsets[evt_range, :]  = read(d_blμ)'
             baseline_rms[evt_range, :]      = read(d_blσ)'
             baseline_slopes[evt_range, :]   = read(d_bls)'
+            last_event_idx += n_events_in_file
         end
     end
-
-    # cut_indices::Vector{Int} = Array{Int, 1}(undef, 0)
 
     for ichn in 1:n_channel
         begin # baseline offset
             bl_μ::T, bl_σ::T = mean_and_std(baseline_offsets[:, ichn])
-            h_offsets = fit(Histogram, baseline_offsets[:, ichn], bl_μ-10bl_σ:bl_σ/100:bl_μ+10bl_σ, closed=:left)
+            h_offsets = Histogram(0.0:1:2^14)
+            append!(h_offsets,  baseline_offsets[:, ichn])
+            # h_offsets = fit(Histogram, baseline_offsets[:, ichn], bl_μ-10bl_σ:bl_σ/100:bl_μ+10bl_σ, closed=:left)
             p_h_bl_offsets = plot(h_offsets, st=:step, yscale = :log10, label = "", xlabel = "Baseline mean / ADC counts", ylabel = "#Events")
             vline!([bl_μ - n_sigma * bl_σ, bl_μ + n_sigma * bl_σ], lw=2.0, label = "Mean ± $(n_sigma)σ", lc = :red)
-            
-            # n_cut_offset::Int = 0
-            # for i in 1:n_events
-            #     if (baseline_offsets[i, ichn] > bl_μ + bl_σ) || (baseline_offsets[i, ichn] < bl_μ - bl_σ)
-            #         n_cut_offset += 1 
-            #         push!(cut_indices, i)
-            #     end
-            # end
-            # @info "Offset cut: $n_cut_offset events, $(round((100 * n_cut_offset / n_events), digits = 2)) %"
         end
 
         begin # baseline rms
@@ -190,14 +186,6 @@ function baseline_quality_plots(m::Measurement; n_sigma::Real = 1.0)
             p_h_bl_rms = plot(h_bl_rms, st=:step, yscale = :log10, xlabel = "Basline RMS / ADC counts", ylabel = "#Events", label = "")
             vline!([bl_rms_μ], label = "Mean", lw = 2.0, lc = :red)
             xlims!(0, bl_rms_μ + 2bl_rms_σ)
-            # n_cut_rms::Int = 0
-            # for i in 1:n_events
-            #     if baseline_rms[i, ichn] > bl_rms_μ 
-            #         n_cut_rms += 1 
-            #         push!(cut_indices, i)
-            #     end
-            # end
-            # @info "RMS cut: $n_cut_rms events, $(round((100 * n_cut_rms / n_events), digits = 2)) %"
         end
 
         begin # baseline slope
@@ -205,20 +193,7 @@ function baseline_quality_plots(m::Measurement; n_sigma::Real = 1.0)
             h_bl_slopes = fit(Histogram, baseline_slopes[:, ichn], -10bl_slope_σ:bl_slope_σ/100:10bl_slope_σ)
             p_h_bl_slopes = plot(h_bl_slopes, st=:step, yscale = :log10, xlabel = "Basline slopes / (ADC counts / sample)", ylabel = "#Events", label = "")
             vline!([bl_slope_μ - n_sigma * bl_slope_σ, bl_slope_μ + n_sigma * bl_slope_σ], label = "Mean ± $(n_sigma)σ", lw = 2.0, lc = :red)
-            
-            # n_cut_slope::Int = 0
-            # for i in 1:n_events
-            #     if (baseline_slopes[i, ichn] > bl_slope_μ + bl_slope_σ) || (baseline_slopes[i, ichn] < bl_slope_μ - bl_slope_σ)
-            #         n_cut_slope += 1 
-            #         push!(cut_indices, i)
-            #     end
-            # end
-            # @info "Slope cut: $n_cut_slope events, $(round((100 * n_cut_slope / n_events), digits = 2)) %"
         end
-
-        # unique!(cut_indices)
-        # n_total_cuts::Int = length(cut_indices)
-        # @info "Combined cut: $n_total_cuts events, $(round((100 * n_total_cuts / n_events), digits = 2)) %"
 
         p_summary = plot(
             p_h_bl_offsets, p_h_bl_rms, p_h_bl_slopes,

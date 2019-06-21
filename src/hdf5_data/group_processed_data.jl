@@ -64,3 +64,19 @@ function get_pulses(m::Measurement, event_index::Int, file_number::Int=1)::Abstr
     c::Array{T, 2} = T.(read_analysis_result_dataset(m, "calibration_matrix"))
     return get_pulses(inputfiles[file_number], event_index, sampling_rate, tdcs, bl, bl_inv, decay_factors, c)
 end
+
+function get_event_flags(fn::AbstractString)::Vector{EventFlag}
+    return h5read(fn, "Processed_data/event_flags")
+end
+function get_event_flags(m::Measurement)::Vector{EventFlag}
+    inputfiles::Vector{AbstractString} = gather_absolute_paths_to_hdf5_input_files(m)
+    n_events::Int = get_number_of_events(m)
+    flags::Vector{EventFlag} = Vector{EventFlag}(undef, n_events)
+    last_evt_idx::Int = 0
+    for fn in inputfiles
+        n::Int = get_number_of_events(fn)
+        flags[last_evt_idx+1:last_evt_idx+n] = get_event_flags(fn)
+        last_evt_idx += n
+    end
+    return flags
+end

@@ -48,8 +48,6 @@ module GeDetAnalysisTools
     const USER_DATA_PATH   = ENV["GEDET_USER_DATA_PATH"]   # e.g.: export GEDET_USER_DATA_PATH="/remote/ceph/group/gedet/data/lab"
     const USER_OUTPUT_PATH = ENV["GEDET_USER_OUTPUT_PATH"] # e.g.: export GEDET_USER_OUTPUT_PATH="/remote/ceph/user/l/lhauert/analysis_directory"
 
-    const NoPileUpFlag = UInt8(0)
-    const PileUpFlag = UInt8(1)
 
     include("types/DAQ.jl")
     include("types/Detector.jl")
@@ -62,6 +60,8 @@ module GeDetAnalysisTools
     include("data_conversion/0_data_conversion.jl")
 
     include("hdf5_data/hdf5_data.jl")
+
+    include("analysis_tools/event_flagging/0_event_flagging.jl")
 
     include("analysis_tools/0_0_analysis_tools.jl")
     
