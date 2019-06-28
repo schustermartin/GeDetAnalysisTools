@@ -13,6 +13,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
             d_energies = d_open(g_pd, "energies")
             d_tau_decay_constants = d_open(g_pd, "tau_decay_constants")
             d_ssidcs = d_open(g_pd, "single_segment_indices")
+            d_pile_up_flag = d_open(g_pd, "event_flags")
             T::Type = eltype(d_energies)
             energy_range = T.(energy_range)
             n_channel, n_events = size(d_energies)
@@ -26,7 +27,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
                     chunk_energies::Array{T, 2} = d_energies[:, evt_range]
                     chunk_ssi::Array{UInt8, 1} = d_ssidcs[evt_range]
                     chunk_tdcs::Array{T, 2} = d_tau_decay_constants[:, evt_range]
-                    for event in 1:length(evt_range)
+                    for event in get_event_indices(d_pile_up_flag[evt_range], :healthy)#1:length(evt_range)
                         ssi::UInt8 = chunk_ssi[event]
                         if ssi > 0
                             core_energy::T = chunk_energies[core, event]

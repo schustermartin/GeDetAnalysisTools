@@ -102,7 +102,7 @@ function unflag_events(m)
                 d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
             end
 
-            d_pile_up_flag[:] = HealtyEvent 
+            d_pile_up_flag[:] = HealthyEvent 
 
             close(h5f)
         catch err
