@@ -74,3 +74,12 @@ end
 function is_new_pulse_format(m::Measurement)::Bool
 	return is_new_pulse_format(gather_absolute_paths_to_hdf5_input_files(m)[1])
 end
+
+function get_dataset(m::Measurement, path::AbstractString)
+	inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+	ds = h5read(inputfiles[1], path)
+	for ifn in inputfiles[2:end]
+		ds = hcat(ds, h5read(ifn, path))
+	end
+	return ds
+end
