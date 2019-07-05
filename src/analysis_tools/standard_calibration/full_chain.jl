@@ -53,6 +53,7 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 		c0_pre, h_core, h_deconv = determine_core_precalibration_factor_with_mpas(m, nbins = precal_nbins, photon_lines = precal_photon_lines, α = α, rtol=rtol, min_n_peaks = min_n_peaks, max_n_peaks = max_n_peaks, peak_sigma = peak_sigma, peak_threshold = peak_threshold );
 		write_analysis_result_dataset(m, "core_precalibration_factor", c0_pre);
 	else
+		@info "using precalibration factor: $c0_pre"
 		c0_pre = read_analysis_result_dataset(m, "core_precalibration_factor");
 	end
 
