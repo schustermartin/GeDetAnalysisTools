@@ -166,7 +166,7 @@ end
 function get_motor_pos_r_from_measurement_name(m::Measurement; new_data_structure=true)
 	motor_pos_r = NaN64
 	if new_data_structure == true
-		reg = r"R_[0-9]*.{0,1}[0-9]*mm"
+		reg = r"R_-{0,1}[0-9]*.{0,1}[0-9]*mm"
 		if occursin(reg, m.name)
 			motor_pos_r = parse(Float64, match( reg, m.name ).match[3:end-2])
 		end
@@ -185,7 +185,7 @@ end
 function get_motor_pos_z_from_measurement_name(m::Measurement; new_data_structure=true)
 	motor_pos_z = NaN64
 	if new_data_structure == true
-		reg = r"Z_[0-9]*.{0,1}[0-9]*mm"
+		reg = r"Z_-{0,1}[0-9]*.{0,1}[0-9]*mm"
 		if occursin(reg, m.name)
 			motor_pos_z = parse(Float64, match( reg, m.name ).match[3:end-2])
 		end
@@ -204,7 +204,7 @@ end
 function get_motor_pos_phi_from_measurement_name(m::Measurement; new_data_structure=true)
 	motor_pos_phi = NaN64
 	if new_data_structure == true
-		reg = r"Phi_[0-9]*.{0,1}[0-9]*deg"
+		reg = r"Phi_-{0,1}[0-9]*.{0,1}[0-9]*deg"
 		if occursin(reg, m.name)
 			motor_pos_phi = parse(Float64, match( reg, m.name ).match[5:end-3])
 		end
