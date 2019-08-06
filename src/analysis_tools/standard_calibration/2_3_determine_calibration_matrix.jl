@@ -3,7 +3,7 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
     n_channel = get_number_of_channel(m)
     n_segments = n_channel - 1
     core = 1
-    
+
     T = Float32
 
     c0 = T(core_calibration_constant)
@@ -71,7 +71,7 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
         mp = (h.edges[1][1:length(h.edges[1])-1] .+ 0.5 * step(h.edges[1]))
         cal_peak_idx = findmax(h.weights)[2]
         init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[cal_peak_idx] ]
-        fitrange = ((mp[cal_peak_idx] - 3 * step(h.edges[1])), (mp[cal_peak_idx] + 3 * step(h.edges[1])))
+        fitrange = ((mp[cal_peak_idx] - 6 * step(h.edges[1])), (mp[cal_peak_idx] + 7.5 * step(h.edges[1])))
         fitf = RadiationSpectra.FitFunction{T}( scaled_cauchy, 1, 3 )
         set_initial_parameters!(fitf, init_fit_params)
         set_fitranges!(fitf, (fitrange,))
@@ -125,9 +125,11 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
             ct_peak_idx = findmax(h.weights)[2]
             ct_peak_pos = mp[ct_peak_idx]
 
-            init_fit_params = [ h.weights[ct_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[ct_peak_idx] ]
+            init_fit_params = [ h.weights[ct_peak_idx] * 2π * step(h.edges[1]), 3 * step(h.edges[1]), mp[ct_peak_idx] ]
+            # println("init fit params: $ichn_src, $ichn_tar", init_fit_params)
+            # init_fit_params = [ h.weights[ct_peak_idx] *  step(h.edges[1]), 2 * step(h.edges[1]), mp[ct_peak_idx] ]
             # fitrange = (mp[ct_peak_idx] - 3 * step(h.edges[1])):step(h.edges[1]):(mp[ct_peak_idx] + 3 * step(h.edges[1]))
-            fitrange = ((mp[ct_peak_idx] - 3 * step(h.edges[1])), (mp[ct_peak_idx] + 3 * step(h.edges[1])))## <- modify for distorted pulses
+            fitrange = ((mp[ct_peak_idx] - 7 * step(h.edges[1])), (mp[ct_peak_idx] + 7 * step(h.edges[1])))## <- modify for distorted pulses
             fitf = RadiationSpectra.FitFunction{T}( scaled_cauchy, 1, 3 )
             set_initial_parameters!(fitf, init_fit_params)
             set_fitranges!(fitf, (fitrange,))

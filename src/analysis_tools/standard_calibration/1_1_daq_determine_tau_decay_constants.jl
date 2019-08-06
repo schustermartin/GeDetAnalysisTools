@@ -1,5 +1,5 @@
 
-function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], energy_range=200:3000, create_plots=true, ssidcs_ΔE = 20.0)
+function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], energy_range=200:3000, create_plots=true, ssidcs_ΔE = 10.0)
     n_total_events = get_number_of_events(m)
     n_channel = get_number_of_channel(m)
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
@@ -12,7 +12,9 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
         try
             g_pd  = g_open(h5f, "Processed_data")
             d_tau_decay_constants = d_open(g_pd, "tau_decay_constants")
+            # println("aa")
             d_energies = get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
+            # println("bb")
             # d_ssidcs = d_open(g_pd, "single_segment_indices")
             T::Type = eltype(d_energies)
             energy_range = T.(energy_range)
@@ -70,6 +72,7 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
             h = hists[ichn]
             set_fitranges!(fitf, ((35, 65), ))
             set_initial_parameters!(fitf, T[findmax(h.weights)[1],1.5, collect(h.edges[1])[findmax(h.weights)[2]]])
+            # println(T[findmax(h.weights)[1],1.5, collect(h.edges[1])[findmax(h.weights)[2]]])
             RadiationSpectra.lsqfit!(fitf, h)
             push!(fit_results, fitf)
         end
