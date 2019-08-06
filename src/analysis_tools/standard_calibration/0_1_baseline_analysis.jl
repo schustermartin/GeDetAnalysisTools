@@ -128,14 +128,16 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
             d::T = T(n_sigma * σ)
             n_channel::Int, n_events::Int = size(d_slopes)
             chunk_n_events::Int = get_chunk(d_slopes)[end]
-            d_pile_up_flag = if exists(g_pd, "event_flags")
+            d_pile_up_flag_exists::Bool = exists(g_pd, "event_flags")
+            d_pile_up_flag = if d_pile_up_flag_exists
                 d_open(g_pd, "event_flags")
             else
                 d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
             end
+            if !d_pile_up_flag_exists d_pile_up_flag .= UInt8(0) end
 
             slopes::Vector{T} = read(d_slopes)[channel, :]
-            pile_up_flags::Vector{UInt8} = zeros(UInt8, n_events)
+            pile_up_flags::Vector{UInt8} = d_pile_up_flag[:]
 
             @inbounds for i in 1:n_events
                 if slopes[i] < -d
@@ -173,14 +175,16 @@ function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
             d::T = T(n_sigma * σ)
             n_channel::Int, n_events::Int = size(d_slopes)
             chunk_n_events::Int = get_chunk(d_slopes)[end]
-            d_pile_up_flag = if exists(g_pd, "event_flags")
+            d_pile_up_flag_exists::Bool = exists(g_pd, "event_flags")
+            d_pile_up_flag = if d_pile_up_flag_exists
                 d_open(g_pd, "event_flags")
             else
                 d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
             end
+            if !d_pile_up_flag_exists d_pile_up_flag .= UInt8(0) end
 
             slopes::Vector{T} = read(d_slopes)[channel, :]
-            pile_up_flags::Vector{UInt8} = zeros(UInt8, n_events)
+            pile_up_flags::Vector{UInt8} = d_pile_up_flag[:]
 
             @inbounds for i in 1:n_events
                 if slopes[i] > d
