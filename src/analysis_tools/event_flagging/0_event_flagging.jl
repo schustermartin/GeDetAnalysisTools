@@ -12,6 +12,6 @@ const RisingBaselineEvent = 0x02
 # const ...         = 0x80
 
 get_event_indices(event_flags::Vector{EventFlag}, S::Symbol) = get_event_indices(event_flags, Val{S}())
-get_event_indices(event_flags::Vector{EventFlag}, ::Val{:healthy}) = findall( event_flags .== HealthyEvent )
-get_event_indices(event_flags::Vector{EventFlag}, ::Val{:pileup}) = findall( event_flags .== PileUpEvent )
-get_event_indices(event_flags::Vector{EventFlag}, ::Val{:risingbaseline}) = findall( event_flags .== RisingBaselineEvent )
+get_event_indices(event_flags::Vector{EventFlag}, ::Val{:healthy}) = findall( event_flags .== HealthyEvent  )
+get_event_indices(event_flags::Vector{EventFlag}, ::Val{:pileup}) = findall( (event_flags .& PileUpEvent) .> 0)
+get_event_indices(event_flags::Vector{EventFlag}, ::Val{:risingbaseline}) = findall( (event_flags .& RisingBaselineEvent) .> 0 )
