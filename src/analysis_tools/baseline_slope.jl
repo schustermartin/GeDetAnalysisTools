@@ -62,8 +62,8 @@ function determine_baseline_information(m::Measurement)
                 chunk_rms = Array{T, 2}(undef, n_channel, chunksize[2])
                 chunk_pulses = Array{T, 3}(undef, n_samples, n_channel, chunksize[2])
                 # @showprogress for evt_range in event_range_iterator(n_events, chunksize[2])
-                for evt_range in event_range_iterator(n_events, chunksize[2])
-                    @info evt_range
+                @showprogress for evt_range in event_range_iterator(n_events, chunksize[2])
+                    # @info evt_range
                     levtr::Int = length(evt_range)
                     chunk_pulses[:, :, 1:levtr]  = d_daq_pulses[:, :, evt_range]
                     for i in 1:levtr
@@ -93,42 +93,46 @@ function determine_baseline_information(m::Measurement)
     return nothing
 end
 
-function flag_pileup_events(m, threshold = missing, channel::Int=1)
-    !exists(m,"Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
-    n_total_events = get_number_of_events(m)
-    inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
-    core::UInt8 = 1
-    for (fi, f) in enumerate(inputfiles)
-        h5f = h5open(f, "r+")
-        try
-            g_pd  = g_open(h5f, "Processed_data")
-            d_slopes = d_open(g_pd, "baseline_slope")
-            T::Type = eltype(d_slopes)
-            ismissing(threshold) ? d = T(-3*stdm(d_slopes[channel,:][1,:],0.0)) : d = T(threshold)
-            n_channel, n_events = size(d_slopes)
-            chunk_n_events = get_chunk(d_slopes)[end]
-            if exists(g_pd, "pile_up_flags")
-                o_delete(g_pd, "pile_up_flags")
-            end
-            d_pile_up_flag  = d_create(g_pd, "pile_up_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
-
-            evt_ranges = event_range_iterator(n_events, chunk_n_events)
-            @fastmath @inbounds begin
-                @showprogress for evt_range in evt_ranges
-                    chunk_slopes::Array{T, 1} = d_slopes[channel, evt_range][1,:]
-                    chunk_pileup::Array{UInt8, 1} = zeros(UInt8, length(evt_range))
-                    for event in 1:length(evt_range)
-                        chunk_pileup[event] = chunk_slopes[event] < d ? UInt8(1) : UInt8(0)
-                    end
-                    d_pile_up_flag[evt_range] = chunk_pileup
+function flag_pileup_events(m, threshold = missing, channel::Int=1, overwrite = false)
+    if !exists(m, "Processed_data/pile_up_flags") || overwrite == true
+        !exists(m,"Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
+        n_total_events = get_number_of_events(m)
+        inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+        core::UInt8 = 1
+        for (fi, f) in enumerate(inputfiles)
+            h5f = h5open(f, "r+")
+            try
+                g_pd  = g_open(h5f, "Processed_data")
+                d_slopes = d_open(g_pd, "baseline_slope")
+                T::Type = eltype(d_slopes)
+                ismissing(threshold) ? d = T(-1*stdm(d_slopes[channel,:][1,:],0.0)) : d = T(threshold)
+                n_channel, n_events = size(d_slopes)
+                chunk_n_events = get_chunk(d_slopes)[end]
+                if exists(g_pd, "pile_up_flags")
+                    o_delete(g_pd, "pile_up_flags")
                 end
-            end
+                d_pile_up_flag  = d_create(g_pd, "pile_up_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
 
-            close(h5f)
-        catch err
-            close(h5f)
-            error(err)
+                evt_ranges = event_range_iterator(n_events, chunk_n_events)
+                @fastmath @inbounds begin
+                    @showprogress for evt_range in evt_ranges
+                        chunk_slopes::Array{T, 1} = d_slopes[channel, evt_range][1,:]
+                        chunk_pileup::Array{UInt8, 1} = zeros(UInt8, length(evt_range))
+                        for event in 1:length(evt_range)
+                            chunk_pileup[event] = chunk_slopes[event] < d ? UInt8(1) : UInt8(0)
+                        end
+                        d_pile_up_flag[evt_range] = chunk_pileup
+                    end
+                end
+
+                close(h5f)
+            catch err
+                close(h5f)
+                error(err)
+            end
         end
+    else
+        nothing
     end
     return nothing
 end
