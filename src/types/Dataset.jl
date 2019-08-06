@@ -1,15 +1,16 @@
 mutable struct Dataset <: AbstractVector{Measurement}
 	name::AbstractString
+	data_dir_name::AbstractString
 	measurements::Vector{Measurement}
 	plotcolor::Union{String, Int, Symbol}
 
-	Dataset() = new("unnamed", Measurement[], :red)
+	Dataset() = new("unnamed", "unknown", Measurement[], :red)
 
-	Dataset(name::AbstractString, measurements::Array{Measurement, 1}) = new(name, measurements, :red)
+	Dataset(name::AbstractString, data_dir_name::AbstractString, measurements::Array{Measurement, 1}) = new(name, data_dir_name, measurements, :red)
 end
 
 function Dataset(name::AbstractString, data_dir_name::AbstractString)::Dataset
-	Dataset(name, data_set_from_conv_data(data_dir_name))
+	Dataset(name, data_dir_name, data_set_from_conv_data(data_dir_name))
 end
 
 function Dataset(name::AbstractString, data_dir_name::AbstractString, detector::Detector, daq::DAQ)::Dataset
@@ -18,7 +19,7 @@ function Dataset(name::AbstractString, data_dir_name::AbstractString, detector::
 		m.daq = daq
 		m.detector = detector
 	end
-	Dataset(name, ms)
+	Dataset(name, data_dir_name, ms)
 end
 
 function getindex(d::Dataset, i::Int)::Measurement
@@ -67,4 +68,8 @@ function sort!(d::Dataset; kwargs...)::Nothing
 	ms_sorted = sort(d.measurements; kwargs...)
 	d.measurements = ms_sorted
 	return nothing
+end
+
+function get_path_to_raw_data(d::Dataset)::AbstractString
+	return joinpath(GAT.USER_DATA_PATH, d.data_dir_name[1:4], d.data_dir_name, "raw_data")
 end

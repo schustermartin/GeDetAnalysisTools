@@ -1,3 +1,6 @@
+include("0_1_baseline_analysis.jl")
+include("0_2_exponential_tail_decay.jl")
+
 include("1_0_daq_quick_cal_with_daq_energies.jl")
 include("1_1_daq_determine_tau_decay_constants.jl")
 

@@ -19,7 +19,7 @@ module GeDetAnalysisTools
     using ProgressMeter
     using RadiationSpectra 
     using RecipesBase
-    using SIS3316
+    using SIS3316Digitizers
     using SpecialFunctions
     using StaticArrays
     using Statistics
@@ -31,6 +31,7 @@ module GeDetAnalysisTools
     import Plots: xlims, xlims!, ylims, ylims!
     import Plots: annotate!
     import Plots: png, pdf, eps
+    import Plots: vline!, hline!
 
     import LegendHDF5IO: readdata, writedata
 
@@ -47,6 +48,7 @@ module GeDetAnalysisTools
     const USER_DATA_PATH   = ENV["GEDET_USER_DATA_PATH"]   # e.g.: export GEDET_USER_DATA_PATH="/remote/ceph/group/gedet/data/lab"
     const USER_OUTPUT_PATH = ENV["GEDET_USER_OUTPUT_PATH"] # e.g.: export GEDET_USER_OUTPUT_PATH="/remote/ceph/user/l/lhauert/analysis_directory"
 
+
     include("types/DAQ.jl")
     include("types/Detector.jl")
     include("types/Measurement.jl")
@@ -59,7 +61,9 @@ module GeDetAnalysisTools
 
     include("hdf5_data/hdf5_data.jl")
 
-    include("analysis_tools/analysis_tools.jl")
+    include("analysis_tools/event_flagging/0_event_flagging.jl")
+
+    include("analysis_tools/0_0_analysis_tools.jl")
     
     include("plot_recipes/plot_recipes.jl")
     include("plot_recipes/plotting.jl")

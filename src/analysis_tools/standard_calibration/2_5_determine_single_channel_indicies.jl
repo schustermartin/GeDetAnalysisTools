@@ -1,4 +1,4 @@
-function determine_single_channel_indices( m, c; ΔE = 3 )
+function determine_single_channel_indices( m, c; ΔE::Real = 3.0 )
     n_total_events = get_number_of_events(m)
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     core::UInt8 = 1
@@ -17,18 +17,22 @@ function determine_single_channel_indices( m, c; ΔE = 3 )
             end
             d_single_segment_indices  = d_create(g_pd, "single_segment_indices", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
 
-            evt_ranges = event_range_iterator(n_events, chunk_n_events)
-            @fastmath @inbounds begin
-                @showprogress for evt_range in evt_ranges
-                    chunk_energies::Array{T, 2} = d_energies[:, evt_range]
-                    chunk_ssi::Array{UInt8, 1} = zeros(UInt8, length(evt_range))
-                    for event in 1:length(evt_range)
-                        chunk_ssi[event] = get_single_segment_channel_index_abs(chunk_energies[:, event], d)
+            if n_channel > 1
+                evt_ranges = event_range_iterator(n_events, chunk_n_events)
+                @fastmath @inbounds begin
+                    @showprogress for evt_range in evt_ranges
+                        chunk_energies::Array{T, 2} = d_energies[:, evt_range]
+                        chunk_ssi::Array{UInt8, 1} = zeros(UInt8, length(evt_range))
+                        for event in 1:length(evt_range)
+                            chunk_ssi[event] = get_single_segment_channel_index_abs(chunk_energies[:, event], d)
+                        end
+                        d_single_segment_indices[evt_range] = chunk_ssi
                     end
-                    d_single_segment_indices[evt_range] = chunk_ssi
                 end
+            else
+                d_single_segment_indices[:] = 0x01
             end
-                      
+                
             close(h5f)
         catch err
             close(h5f)
@@ -38,7 +42,7 @@ function determine_single_channel_indices( m, c; ΔE = 3 )
     return nothing
 end
 
-function determine_single_channel_indices( m; ΔE = 3 )
+function determine_single_channel_indices( m; ΔE::Real = 3.0 )
     c = read_analysis_result_dataset(m, "calibration_matrix")
     determine_single_channel_indices(m, c, ΔE=ΔE)
 end

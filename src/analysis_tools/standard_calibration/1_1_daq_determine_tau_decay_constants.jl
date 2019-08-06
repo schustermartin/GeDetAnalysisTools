@@ -2,45 +2,52 @@
 function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], energy_range=200:3000, create_plots=true, ssidcs_ΔE = 10.0)
     n_total_events = get_number_of_events(m)
     n_channel = get_number_of_channel(m)
+    multi_channel_det::Bool = n_channel > 1
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     core::UInt8 = 1
     fitted_tau_decay_constants::Array{Float64, 1} = Float64[ 0 for chn in 1:n_channel ]
-    hists = Histogram[ Histogram(20:0.5:80, :left) for chn in 1:n_channel ]
+    hists = Histogram[ Histogram(20:0.1:80, :left) for chn in 1:n_channel ]
+    d_energies = get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
+    total_evt_start_idx::Int = 0
 
     for (fi, f) in enumerate(inputfiles)
         h5f = h5open(f, "r+")
         try
             g_pd  = g_open(h5f, "Processed_data")
             d_tau_decay_constants = d_open(g_pd, "tau_decay_constants")
-            # println("aa")
-            d_energies = get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
-            # println("bb")
-            # d_ssidcs = d_open(g_pd, "single_segment_indices")
+
+            #d_energies = get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
+
             T::Type = eltype(d_energies)
             energy_range = T.(energy_range)
-            n_channel, n_events = size(d_energies)
-            chunk_n_events = 1000#get_chunk(d_energies)[end]
+            n_events_in_file = size(d_tau_decay_constants)[end]
+            chunk_n_events = get_chunk(d_tau_decay_constants)[end]
             # n_events = 2000
-            evt_ranges = event_range_iterator(n_events, chunk_n_events)
+            evt_ranges = event_range_iterator(n_events_in_file, chunk_n_events)
             @fastmath @inbounds begin
                 @showprogress for evt_range in evt_ranges
-                # for evt_range in evt_ranges
-                    chunk_energies::Array{T, 2} = d_energies[:, evt_range]
-                    # chunk_ssi::Array{UInt8, 1} = d_ssidcs[evt_range]
+                    chunk_energies::Array{T, 2} = d_energies[:, total_evt_start_idx .+ evt_range]
                     chunk_tdcs::Array{T, 2} = d_tau_decay_constants[:, evt_range]
                     for event in 1:length(evt_range)
-                        ssi::UInt8 = get_single_segment_channel_index_abs(d_energies[:,event],T(ssidcs_ΔE))
-                        if ssi > 0
-                            core_energy::T = chunk_energies[core, event]
+                        if multi_channel_det
+                            ssi::UInt8 = get_single_segment_channel_index_abs(d_energies[:,event], T(ssidcs_ΔE))
+                            if ssi > 0
+                                core_energy::T = chunk_energies[core, event]
+                                if first(energy_range) <= core_energy <= last(energy_range)
+                                    push!(hists[core], chunk_tdcs[core, event])
+                                    push!(hists[ssi], chunk_tdcs[ssi, event])
+                                end
+                            end
+                        else
+                            core_energy = chunk_energies[core, event]
                             if first(energy_range) <= core_energy <= last(energy_range)
                                 push!(hists[core], chunk_tdcs[core, event])
-                                push!(hists[ssi], chunk_tdcs[ssi, event])
                             end
                         end
                     end
                 end
             end
-
+            total_evt_start_idx += n_events_in_file
             close(h5f)
         catch err
             close(h5f)
@@ -48,11 +55,11 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
         end
     end
 
-    T = Float64
+    TF::DataType = Float64
     # fit_results = GeDetSpectrumAnalyserTmp.Fit[]
     fit_results = RadiationSpectra.FitFunction[]
     for ichn in eachindex(1:n_channel)
-        fitf = RadiationSpectra.FitFunction{T}( scaled_cauchy, 1, 3 )
+        fitf = RadiationSpectra.FitFunction{TF}( scaled_cauchy, 1, 3 )
         try
             h = hists[ichn]
             mp = midpoints(h.edges[1])
@@ -71,8 +78,10 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
         catch err
             h = hists[ichn]
             set_fitranges!(fitf, ((35, 65), ))
+
             set_initial_parameters!(fitf, T[findmax(h.weights)[1],1.5, collect(h.edges[1])[findmax(h.weights)[2]]])
             # println(T[findmax(h.weights)[1],1.5, collect(h.edges[1])[findmax(h.weights)[2]]])
+
             RadiationSpectra.lsqfit!(fitf, h)
             push!(fit_results, fitf)
         end

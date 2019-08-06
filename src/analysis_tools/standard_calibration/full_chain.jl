@@ -8,15 +8,16 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 											ssidcs_ΔE = 3,
 											quality_check_photon_lines = cal_photon_lines,
 											fit_individual_decay_time_constants = false,
-											c0_pre=missing)::Nothing
+											c0_pre = missing)::Nothing
+
 
 	println("now $(m.name)")
-	if (!exists(m, "Processed_data/tau_decay_constants")) && fit_individual_decay_time_constants
+	if (!exists(m, "Processed_data/tau_decay_constants")) || fit_individual_decay_time_constants
 		println("Determing individual decay time constants: $(m.name)")
 		determine_individual_decay_time_constants(m);
 	end
 
-	if exists(m, "Results/tau_decay_constants") && overwrite_init_tdcs == true
+	if exists(m, "Results/tau_decay_constants") && overwrite_init_tdcs == false
 		tdcs = read_analysis_result_dataset(m, "tau_decay_constants")
 		tdcs_err = read_analysis_result_dataset(m, "tau_decay_constants")
 		write_analysis_result_dataset(m, "init_tau_decay_constants", tdcs)
@@ -24,7 +25,7 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 		println("using fitted tau decay times.")
 	end
 
-	if  !exists(m, "Results/init_tau_decay_constants") || overwrite_init_tdcs == true
+	if  !exists(m, "Results/init_tau_decay_constants") && overwrite_init_tdcs == false
 		if exists(m, "Processed_data/tau_decay_constants")
 			println("using fitted tau decay times from daq data")
 			# tdcs_daq, tdcs_daq_err, hists, fit_results = daq_determine_decay_time_constants(m)#, photon_lines = precal_photon_lines)
@@ -56,6 +57,7 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 		println("using set precalfactor: $(c0_pre)")
 		write_analysis_result_dataset(m, "core_precalibration_factor", c0_pre);
 	else
+		@info "using precalibration factor: $c0_pre"
 		c0_pre = read_analysis_result_dataset(m, "core_precalibration_factor");
 	end
 
@@ -85,7 +87,6 @@ function full_chain_standard_calibration(	m::Measurement; overwrite=false, overw
 	if overwrite || !exists(m, "Processed_data/single_segment_indices")
 		determine_single_channel_indices(m, c, ΔE=ssidcs_ΔE);
 	end
-
 
 	if (overwrite || !exists(m, "Results/tau_decay_constants"))
 		# tdcs, tdcs_err, hists, fit_results = determine_decay_time_constants(m; energy_range=200:3000)
