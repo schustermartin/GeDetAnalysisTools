@@ -42,7 +42,7 @@ end
 
 function SUSIE()
     susie = Detector()
-    susie.name = "Susie"
+    susie.name = "Super Siegfried"
     susie.n_channels = 20
     susie.crystal_length = 70
     susie.crystal_radius = 37.5
