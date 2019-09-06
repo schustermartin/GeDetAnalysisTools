@@ -39,7 +39,8 @@ function convert_data_files_sis3316_to_hdf5( raw_dir = pwd();
 
                 if compress_raw_data
                     @info "Now on $(myid()): Compression dat files."
-                    if (file_is_compressed && isfile(fn)) rm(fn) else compress_file(fn, keep_input_files=false) end
+                    @info "Now on $(myid()): Compression dat files. Skipping..."
+                    # if (file_is_compressed && isfile(fn)) rm(fn) else compress_file(fn, keep_input_files=false) end
                 end
 
                 @info "Now on $(myid()): Finished with $(ofn)."
@@ -55,10 +56,6 @@ function convert_data_files_sis3316_to_hdf5( raw_dir = pwd();
     return nothing
 end
 
-function convert_data_files_sis3316_to_hdf5( d::Dataset;    overwrite=false, evt_merge_window::AbstractFloat=100e-9, waveform_format=:integers, 
-                                                            chunk_n_events::Int=100, keep_individual_hdf5_files::Bool = false, compress_raw_data::Bool = true, 
-                                                            waveform_type::DataType = Int32)
-    convert_data_files_sis3316_to_hdf5( get_path_to_raw_data(d),   overwrite = overwrite, evt_merge_window = evt_merge_window, waveform_format = waveform_format,
-                                                                    waveform_type = waveform_type, chunk_n_events = chunk_n_events, keep_individual_hdf5_files = keep_individual_hdf5_files,
-                                                                    compress_raw_data = compress_raw_data )                                             
+function convert_data_files_sis3316_to_hdf5( d::Dataset; kwargs...)
+    convert_data_files_sis3316_to_hdf5( get_path_to_raw_data(d); kwargs... )                                             
 end
