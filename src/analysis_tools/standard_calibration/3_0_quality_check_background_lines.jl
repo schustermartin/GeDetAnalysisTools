@@ -14,7 +14,7 @@ function quality_check(	m::Measurement;	overwrite=false, quality_check_photon_li
 	push!(df, ["K40",   1460.830, :BackgroundPhotonLine ])
 	# push!(df, ["Bi214", 1764.494, :BackgroundPhotonLine ])
 	push!(df, ["Tl208", 2614.533, :BackgroundPhotonLine ])
-	photon_lines::Vector{Float64} = sort!(vcat([e for e in df[:Energy]],quality_check_photon_lines))
+	photon_lines::Vector{Float64} = sort!(vcat([e for e in df[!, :Energy]],quality_check_photon_lines))
 
 	photon_lines_fit_parameters_core::Array{Float64, 2} = zeros(Float64, 6, length(photon_lines))
 	if multi_channel_det photon_lines_fit_parameters_sumseg::Array{Float64, 2} = zeros(Float64, 6, length(photon_lines)) end
