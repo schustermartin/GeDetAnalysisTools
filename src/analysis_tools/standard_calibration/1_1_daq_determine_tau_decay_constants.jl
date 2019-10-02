@@ -16,7 +16,7 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
             g_pd  = g_open(h5f, "Processed_data")
             d_tau_decay_constants = d_open(g_pd, "tau_decay_constants")
 
-            #d_energies = get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
+            d_energies = get_quick_calibrated_daq_energies(m, photon_lines = photon_lines)
 
             T::Type = eltype(d_energies)
             energy_range = T.(energy_range)
@@ -79,7 +79,7 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
             h = hists[ichn]
             set_fitranges!(fitf, ((35, 65), ))
 
-            set_initial_parameters!(fitf, T[findmax(h.weights)[1],1.5, collect(h.edges[1])[findmax(h.weights)[2]]])
+            set_initial_parameters!(fitf, TF[findmax(h.weights)[1],1.5, collect(h.edges[1])[findmax(h.weights)[2]]])
             # println(T[findmax(h.weights)[1],1.5, collect(h.edges[1])[findmax(h.weights)[2]]])
 
             RadiationSpectra.lsqfit!(fitf, h)
