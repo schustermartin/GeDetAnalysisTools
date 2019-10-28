@@ -110,7 +110,7 @@ function convert_all_files(;directory = pwd(),process_pulses::Bool=true,compress
    map(process_one_file,list_of_files_to_convert)
 
   if basename(pwd())=="raw_data"
-      chmod( "../", 0o774, recursive = true)
+      chmod.("../conv_data/".*filter(x -> endswith(x, ".hdf5"), readdir("../conv_data/")), 0o774)
   end
 
 end
