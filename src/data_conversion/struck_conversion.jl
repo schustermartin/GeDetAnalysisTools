@@ -173,7 +173,7 @@ function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samp
     end
 
     temp_event_number::Array{Int32, 1}  = zeros(Int32, chunk_n_events)
-    temp_daq_energy::Array{Float64, 2}  = zeros(Int32, daq_n_channels, chunk_n_events)
+    temp_daq_energy::Array{waveform_type, 2}  = zeros(waveform_type, daq_n_channels, chunk_n_events)
     temp_daq_time::Array{Float64, 2} = zeros(Float64, 1, chunk_n_events)
     temp_daq_pulses::Array{waveform_type, 3} = zeros(waveform_type, daq_n_samples, daq_n_channels, chunk_n_events)
 
