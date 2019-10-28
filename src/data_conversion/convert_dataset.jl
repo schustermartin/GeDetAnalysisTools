@@ -115,6 +115,6 @@ function convert_all_files(;directory = pwd(),process_pulses::Bool=true,compress
 
 end
 
-function convert_data_files_sis3316_to_hdf5( d::Dataset; kwargs...)
-    convert_data_files_sis3316_to_hdf5( get_path_to_raw_data(d); kwargs... )
-end
+# function convert_data_files_sis3316_to_hdf5( d::Dataset; kwargs...)
+#     convert_data_files_sis3316_to_hdf5( get_path_to_raw_data(d); kwargs... )
+# end
