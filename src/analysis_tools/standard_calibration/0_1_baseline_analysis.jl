@@ -134,7 +134,7 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
             else
                 d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
             end
-            if !d_pile_up_flag_exists d_pile_up_flag .= UInt8(0) end
+            if !d_pile_up_flag_exists d_pile_up_flag[:] .= UInt8(0) end
 
             slopes::Vector{T} = read(d_slopes)[channel, :]
             pile_up_flags::Vector{UInt8} = d_pile_up_flag[:]
