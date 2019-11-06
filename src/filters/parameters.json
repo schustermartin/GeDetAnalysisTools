@@ -3,30 +3,30 @@
         "Window": 6,
         "Butter": 1,
         "fct": 0.2,
-        "Rise_Time": 9.42e-9
+        "risetime": 9.42e-9
     },
     "Segment 1": {
         "Window": 60,
         "Butter": 1,
         "fct": 0.015,
-        "Rise_Time": 9.42e-9
+        "risetime": 9.42e-9
     },
     "Segment 2": {
         "Window": 60,
         "Butter": 1,
         "fct": 0.0145,
-        "Rise_Time": 9.42e-9
+        "risetime": 9.42e-9
     },
     "Segment 3": {
         "Window": 60,
         "Butter": 1,
         "fct": 0.011,
-        "Rise_Time": 1.042e-8
+        "risetime": 1.042e-8
     },
     "Segment 4": {
         "Window": 80,
         "Butter": 1,
         "fct": 0.006,
-        "Rise_Time": 9.42e-9
+        "risetime": 9.42e-9
     }
 }
