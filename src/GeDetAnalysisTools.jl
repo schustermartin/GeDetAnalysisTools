@@ -25,6 +25,7 @@ module GeDetAnalysisTools
     using Statistics
     using StatsBase
     using Unitful
+    using IntervalSets
 
     import Plots: @layout, grid
     import Plots: plot, plot!

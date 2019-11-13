@@ -19,7 +19,7 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
     c::T = 1.0
     h0 = fit(Histogram, precal_energies, edges, closed=:left)
 
-    peak_fits = RadiationSpectra.FitFunction[ RadiationSpectra.FitFunction{T}( gauss_plus_first_order_polynom, 1, 5 ) for ichn in 1:length(photon_lines) ]
+    peak_fits = RadiationSpectra.FitFunction[ RadiationSpectra.FitFunction{T}( RadiationSpectra.Gauss_plus_linear_background, 1, 5 ) for ichn in 1:length(photon_lines) ]
     # peak_fits = GeDetSpectrumAnalyserTmp.Fit[]
     for (i, pl) in enumerate(photon_lines)
         line::T = pl

@@ -92,7 +92,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
         tdcs_init = read_analysis_result_dataset(m, "init_tau_decay_constants")
         tdcs_init_err = read_analysis_result_dataset(m, "init_tau_decay_constants_err")
         for i in eachindex(tdcs_init_err) if tdcs_init_err[i] < 0 tdcs_init_err[i] = 0 end end
-        plot!(tdcs_init, yerr=tdcs_init_err, label="Init τ's", st=:scatter)
+        plot!(tdcs_init, label="Init τ's", st=:scatter)
         savefig(m, p, "2_5_tau_decay_constants", "scatter_tau_decay_constants", fmt=:png); p = 0;
     end
 

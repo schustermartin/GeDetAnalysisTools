@@ -107,7 +107,7 @@ end
 
 
 r(m::Measurement)   = m.r(m.motor_pos_r)
-phi_side(m::Measurement) = m.phi_side(m.motor_pos_phi)
+phi_side(m::Measurement; kwargs...) = m.phi_side(m.motor_pos_phi; kwargs...)
 phi_top(m::Measurement) = m.phi_top(m.motor_pos_phi)
 z(m::Measurement)   = m.z(m.motor_pos_z)
 
@@ -135,7 +135,7 @@ function get_datetime_from_measurement_name(m::Measurement; new_data_structure=t
 	filter!(x -> endswith(x, ".dat") || endswith(x, ".bz2"),files)
 	dt = if new_data_structure == true
 		df = DateFormat("yyyymmddTHHMMSSZ")
-		dts = match(r"-\d{8}T\d{6}Z.*", files[1]).match
+		dts = match(r"-\d{8}T\d{6}.*", files[1]).match
 		dts = dts[2:end-4]
 		if endswith(dts, ".dat")
 			dts = dts[1:end-4]
