@@ -32,6 +32,17 @@ function STRUCK()
     return struck
 end
 
+function STRUCK_CZT_SETTINGS()
+    struck = DAQ()
+    struck.name = "STRUCK"
+    struck.n_channels = 16
+    struck.n_samples = 600
+    struck.sampling_rate = 250e6
+    struck.baseline_length = 150
+    struck.decay_window_length = 120
+    return struck
+end
+
 function TWO_STRUCKS()
     struck = DAQ()
     struck.name = "STRUCK"

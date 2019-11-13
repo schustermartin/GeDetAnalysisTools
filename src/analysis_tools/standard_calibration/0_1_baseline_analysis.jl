@@ -21,10 +21,15 @@ function rms(v::Vector{<:Real})
     return sqrt(sum(v.^2)/length(v))
 end
 
-
-
 function determine_baseline_information(m::Measurement; n_sigma::Real = 1.0)
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+    determine_baseline_information(inputfiles, m, n_sigma = n_sigma)
+end
+function determine_baseline_information(filename::String, m::Measurement; n_sigma::Real = 1.0)
+    determine_baseline_information([filename], m,  n_sigma = n_sigma)
+end
+function determine_baseline_information(filenames::Vector{String}, m::Measurement; n_sigma::Real = 1.0)
+    inputfiles = filenames
     T = Float32
     sampling_rate = T(m.daq.sampling_rate)
     bl = Int(m.daq.baseline_length )
@@ -102,7 +107,7 @@ function unflag_events(m)
                 d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
             end
 
-            d_pile_up_flag[:] = HealthyEvent 
+            d_pile_up_flag[:] = HealthyEvent
 
             close(h5f)
         catch err
@@ -111,14 +116,14 @@ function unflag_events(m)
         end
     end
     return nothing
-end 
+end
 
 function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
-    !exists(m,"Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     n_pile_up_events::Int = 0
     n_total_events::Int = get_number_of_events(m)
     for (fi, f) in enumerate(inputfiles)
+        !exists(f, "Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
         h5f = h5open(f, "r+")
         try
             g_pd  = g_open(h5f, "Processed_data")
@@ -134,7 +139,7 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
             else
                 d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
             end
-            if !d_pile_up_flag_exists d_pile_up_flag .= UInt8(0) end
+            if !d_pile_up_flag_exists d_pile_up_flag[:] .= UInt8(0) end
 
             slopes::Vector{T} = read(d_slopes)[channel, :]
             pile_up_flags::Vector{UInt8} = d_pile_up_flag[:]
@@ -147,11 +152,12 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
                 end
             end
             d_pile_up_flag[:] = pile_up_flags
-            
-            n_pile_up_events += sum(pile_up_flags)
-            
+
+            n_pile_up_events += length(findall(x -> (x & PileUpEvent) == PileUpEvent, pile_up_flags))
+
             close(h5f)
         catch err
+            println(err)
             close(h5f)
             error(err)
         end
@@ -161,11 +167,11 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
     return nothing
 end
 function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
-    !exists(m,"Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     n_pile_up_events::Int = 0
     n_total_events::Int = get_number_of_events(m)
     for (fi, f) in enumerate(inputfiles)
+        !exists(f, "Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
         h5f = h5open(f, "r+")
         try
             g_pd  = g_open(h5f, "Processed_data")
@@ -181,7 +187,7 @@ function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
             else
                 d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
             end
-            if !d_pile_up_flag_exists d_pile_up_flag .= UInt8(0) end
+            if !d_pile_up_flag_exists d_pile_up_flag[:] .= UInt8(0) end
 
             slopes::Vector{T} = read(d_slopes)[channel, :]
             pile_up_flags::Vector{UInt8} = d_pile_up_flag[:]
@@ -194,9 +200,9 @@ function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
                 end
             end
             d_pile_up_flag[:] = pile_up_flags
-            
-            n_pile_up_events += sum(pile_up_flags)
-            
+
+            n_pile_up_events += length(findall(x -> (x & RisingBaselineEvent) == RisingBaselineEvent, pile_up_flags))
+
             close(h5f)
         catch err
             close(h5f)
@@ -271,7 +277,7 @@ function baseline_quality_plots(m::Measurement; n_sigma::Real = 1.0)
             legendfontsize = 14, guidefontsize = 14, tickfontsize = 12, titlefontsize = 14
         )
 
-        savefig(m, p_summary, "0_1_baseline_quality", "0_1_baseline_quality_chn$ichn", fmt=:png )        
+        savefig(m, p_summary, "0_1_baseline_quality", "0_1_baseline_quality_chn$ichn", fmt=:png )
     end
     nothing
 end

@@ -87,7 +87,7 @@ function Measurement(path::AbstractString)::Measurement
 	m.path_to_raw_data  = joinpath(path, "raw_data")
 	m.path_to_conv_data = joinpath(path, "conv_data")
 	m.results_path = joinpath(path, "results")
-	compressed_data_files = filter(fn -> endswith(fn, "dat.bz2"), readdir(m.path_to_raw_data))
+	compressed_data_files = filter(fn -> endswith(fn, "dat.bz2") || endswith(fn, "filtered.h5"), readdir(m.path_to_raw_data))
 	m.name = get_measurement_name_from_compressed_data_file_name(compressed_data_files[1])
 	if endswith(m.name, "-adc1") m.name = m.name[1:end-5] end
 
@@ -132,7 +132,7 @@ end
 
 function get_datetime_from_measurement_name(m::Measurement; new_data_structure=true)::DateTime
 	files = filter(x -> startswith(x, m.name), readdir(m.path_to_raw_data))
-	filter!(x -> endswith(x, ".dat") || endswith(x, ".bz2"),files)
+	filter!(x -> endswith(x, ".dat") || endswith(x, ".bz2") || endswith(x, "-filtered.h5"), files)
 	dt = if new_data_structure == true
 		df = DateFormat("yyyymmddTHHMMSSZ")
 		dts = match(r"-\d{8}T\d{6}.*", files[1]).match
@@ -143,6 +143,9 @@ function get_datetime_from_measurement_name(m::Measurement; new_data_structure=t
 		if endswith(dts, "-raw")
 			dts = dts[1:end-4]
 		end
+		if endswith(dts, "-filtered.h5")
+			dts = dts[1:end-12]
+		end
 		DateTime(dts, df)
 	else
 		df = DateFormat("yyyymmdd")
@@ -151,6 +154,7 @@ function get_datetime_from_measurement_name(m::Measurement; new_data_structure=t
 	end
 	return dt
 end
+
 
 function get_pressure_from_measurement_name(m::Measurement)
 	reg = r"_p_\d{1}.\d{1}e-*\d{0,3}mbar"
@@ -166,7 +170,7 @@ end
 function get_motor_pos_r_from_measurement_name(m::Measurement; new_data_structure=true)
 	motor_pos_r = NaN64
 	if new_data_structure == true
-		reg = r"R_[0-9]*.{0,1}[0-9]*mm"
+		reg = r"R_-{0,1}[0-9]*.{0,1}[0-9]*mm"
 		if occursin(reg, m.name)
 			motor_pos_r = parse(Float64, match( reg, m.name ).match[3:end-2])
 		end
@@ -185,7 +189,7 @@ end
 function get_motor_pos_z_from_measurement_name(m::Measurement; new_data_structure=true)
 	motor_pos_z = NaN64
 	if new_data_structure == true
-		reg = r"Z_[0-9]*.{0,1}[0-9]*mm"
+		reg = r"Z_-{0,1}[0-9]*.{0,1}[0-9]*mm"
 		if occursin(reg, m.name)
 			motor_pos_z = parse(Float64, match( reg, m.name ).match[3:end-2])
 		end
@@ -204,7 +208,7 @@ end
 function get_motor_pos_phi_from_measurement_name(m::Measurement; new_data_structure=true)
 	motor_pos_phi = NaN64
 	if new_data_structure == true
-		reg = r"Phi_[0-9]*.{0,1}[0-9]*deg"
+		reg = r"Phi_-{0,1}[0-9]*.{0,1}[0-9]*deg"
 		if occursin(reg, m.name)
 			motor_pos_phi = parse(Float64, match( reg, m.name ).match[5:end-3])
 		end

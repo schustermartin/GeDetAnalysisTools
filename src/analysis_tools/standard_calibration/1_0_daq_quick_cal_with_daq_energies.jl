@@ -14,7 +14,7 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement; photon_l
 		n_segments::Int = n_channel - 1
 		h_core = fit(Histogram, daq_core_energies[:, 1], nbins=nbins, closed=:left)
 		@info photon_lines
-		c0_daq, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h_core, photon_lines, min_n_peaks = 17, threshold = 20.0, α = 0.3, σ = 2.0, rtol = 7e-3 )
+		c0_daq, pcg_hist = RadiationSpectra.determine_calibration_constant_through_peak_ratios(h_core, photon_lines, min_n_peaks = 24, threshold = 20.0, α = 0.5, σ = 3.0, rtol = 7e-3 )
 		@info c0_daq
 		c0_daq, core_peak_fits, core_c0_fit = RadiationSpectra.determine_calibration_constant_through_peak_fitting(h_core, photon_lines, c0_daq)
 
@@ -60,15 +60,16 @@ function determine_calibration_matrix_with_daq_energies(m::Measurement; photon_l
 			mp = (h.edges[1][1:length(h.edges[1])-1] .+ 0.5 * step(h.edges[1]))
 			cal_peak_idx = findmax(h.weights)[2]
 			# init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[cal_peak_idx] ]
-			fitrange = (mp[cal_peak_idx] - 3 * step(h.edges[1])), (mp[cal_peak_idx] + 3 * step(h.edges[1]))
+			fitrange = (mp[cal_peak_idx] - 8 * step(h.edges[1])), (mp[cal_peak_idx] + 8 * step(h.edges[1]))
+			# println("test")
 			fitf = RadiationSpectra.FitFunction{Float64}( scaled_cauchy, 1, 3 )
 			p0 = (
 				scale =  h.weights[cal_peak_idx] * 2π * step(h.edges[1]),
-				σ = 2 * step(h.edges[1]),
-				μ = mp[cal_peak_idx] 
+				σ = 2.5 * step(h.edges[1]),
+				μ = mp[cal_peak_idx]
 			)
 			set_initial_parameters!(fitf, p0)
-			set_fitranges!(fitf, ( ((mp[cal_peak_idx] - 3 * step(h.edges[1])), (mp[cal_peak_idx] + 3 * step(h.edges[1]))), ))
+			set_fitranges!(fitf, ( ((mp[cal_peak_idx] - 7 * step(h.edges[1])), (mp[cal_peak_idx] + 7 * step(h.edges[1]))), ))
 			# fitf.initial_parameters = init_fit_params
 			# fitf.fitrange = fitrange
 
