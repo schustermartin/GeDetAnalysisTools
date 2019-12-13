@@ -2,7 +2,7 @@
 
 <h4>Required input:</h4>
 
-- <code>x</code> -> your simulated pulse
+- <code>x</code> -> your simulated pulse as vector or RDWaveform
 
   - or: <code>[pulse1, pulse2,...]</code>
   
