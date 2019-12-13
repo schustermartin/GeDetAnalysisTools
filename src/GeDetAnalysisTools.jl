@@ -17,6 +17,7 @@ module GeDetAnalysisTools
     using Measures
     using ParallelProcessingTools
     using ProgressMeter
+    using RadiationDetectorSignals
     using RadiationSpectra 
     using RecipesBase
     using SIS3316Digitizers
