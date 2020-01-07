@@ -1,14 +1,26 @@
 """
-    the_filter(x, p::NamedTuple[, samplingtime::Float64=4e-9])
+    the_filter(wf, p::NamedTuple[, samplingtime::Float64=4e-9])
 ...
 # Arguments
-- `x`: pulse in array.
+- `wf`: pulse in array or RDWaveform with (:time, :value).
 - `p::NamedTuple`: one set of parameters for the filter.
 - `samplingtime::Float64=4e-9`: sampling time of the pulse.
 ...
 """
-function the_filter(x, p::NamedTuple;
+function the_filter(wf, p::NamedTuple;
         samplingtime::Float64=4e-9)
+    
+    # Check for input format:
+    #-------------------------------
+    if :value in fieldnames(typeof(wf))
+        x = wf.value
+        RDreturn = true
+    else
+        x = wf
+        RDreturn = false
+    end
+    #-------------------------------
+
     # Filter 1: Basic RC filter:
     #-------------------------------
     K  = 2*p.risetime/samplingtime
@@ -38,32 +50,67 @@ function the_filter(x, p::NamedTuple;
     f(x) = x .^(-2)
     vec = f(0.1 : p.fct : 3)
     vec = vec ./ sum(vec)
-
-    return conv(filtered, vec)[1:length(x)]
+    
+    if RDreturn
+        T = typeof(wf.value)
+        wf_filtered = T(conv(filtered, vec))[1:length(wf.value)]
+        return RDWaveform(wf.time, wf_filtered)
+    else
+        return conv(filtered, vec)[1:length(x)]
+    end
 end
 
 
 """
-    electronics_filter(x, p[, samplingtime::Float64=4e-9])
+    electronics_filter(wf, p[, samplingtime::Float64=4e-9])
 ...
 # Arguments
-- `x`: pulse in array or array of pulses.
+- `wf`: pulse in array or array of pulses or RDWaveform(s) with (:time, :value).
 - `p`: set of parameters for the filter or array of parameter sets.
 - `samplingtime::Float64=4e-9`: sampling time of the pulse.
 ...
 """
-function electronics_filter(x, p; sampling_time::Float64=4e-9)
-
+function electronics_filter(wf, p; sampling_time::Float64=4e-9)
+    
+    # Check for input format:
+    #-------------------------------
+    if :value in fieldnames(typeof(wf))
+        x = wf.value
+        t = wf.time
+        RDreturn = true
+    elseif :value in fieldnames(typeof(wf[1]))
+        x = []
+        t = []
+        for waveform in wf
+            push!(x, waveform.value)
+            push!(t, waveform.time)
+        end
+        RDreturn = true
+    else
+        x = wf
+        RDreturn = false
+    end
+    #-------------------------------
+    
+   
     if length(x[1]) == 1
+        
+        if typeof(p[1]) == Int64
+            if RDreturn 
+                return [RDWaveform(t, the_filter(x,p, samplingtime=sampling_time))]
+            else 
+                return [the_filter(x,p, samplingtime=sampling_time)]
+            end
 
-        if typeof(p) == NamedTuple{(:window, :butter, :fct, :risetime),Tuple{Int64,Int64,Float64,Float64}}
-            return [the_filter(x,p, samplingtime=sampling_time)]
-
-        elseif typeof(p[1]) == NamedTuple{(:window, :butter, :fct, :risetime),Tuple{Int64,Int64,Float64,Float64}}
+        elseif typeof(p[1][1]) == Int64
             filtered_pulses = []
             i = 1
             while i <= length(p)
-                push!(filtered_pulses, the_filter(x, p[i], samplingtime=sampling_time))
+                if RDreturn 
+                    push!(filtered_pulses, RDWaveform(t, the_filter(x, p[i], samplingtime=sampling_time)))
+                else
+                    push!(filtered_pulses, the_filter(x, p[i], samplingtime=sampling_time))
+                end
                 i+= 1
             end
             return filtered_pulses
@@ -71,12 +118,16 @@ function electronics_filter(x, p; sampling_time::Float64=4e-9)
 
 
     elseif length(x) != length(p)
-        if typeof(p) != NamedTuple{(:window, :butter, :fct, :risetime),Tuple{Int64,Int64,Float64,Float64}}
+        if typeof(p[1]) != Int64
             if length(x) == 1
                 filtered_pulses = []
                 i = 1
                 while i <= length(p)
-                    push!(filtered_pulses, the_filter(x[1], p[i], samplingtime=sampling_time))
+                    if RDreturn 
+                        push!(filtered_pulses, RDWaveform(t[1], the_filter(x[1], p[i], samplingtime=sampling_time)))
+                    else
+                        push!(filtered_pulses, the_filter(x[1], p[i], samplingtime=sampling_time))
+                    end
                     i+= 1
                 end
                 return filtered_pulses
@@ -90,7 +141,11 @@ function electronics_filter(x, p; sampling_time::Float64=4e-9)
             filtered_pulses = []
             i = 1
             while i <= length(x)
-                push!(filtered_pulses, the_filter(x[i], p, samplingtime=sampling_time))
+                if RDreturn 
+                    push!(filtered_pulses, RDWaveform(t[i], the_filter(x[i], p, samplingtime=sampling_time)))
+                else
+                    push!(filtered_pulses, the_filter(x[i], p, samplingtime=sampling_time))
+                end
                 i+= 1
             end
             return filtered_pulses
@@ -101,7 +156,11 @@ function electronics_filter(x, p; sampling_time::Float64=4e-9)
         filtered_pulses = []
         i = 1
         while i <= length(x)
-            push!(filtered_pulses, the_filter(x[i], p[i], samplingtime=sampling_time))
+            if RDreturn 
+                push!(filtered_pulses, RDWaveform(t[i], the_filter(x[i], p[i], samplingtime=sampling_time)))
+            else
+                push!(filtered_pulses, the_filter(x[i], p[i], samplingtime=sampling_time))
+            end
             i+= 1
         end
         return filtered_pulses
