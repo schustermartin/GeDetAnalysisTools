@@ -71,7 +71,7 @@ function quality_check(	m::Measurement;	overwrite=false, quality_check_photon_li
 		# plot!(fr_segs)
 		# plot!(fr_core)
 		if multi_channel_det plot!(fitf_segs) end
-		plot!(fitf_core)
+		plot!(fitf_core, bin_width = StatsBase.binvolume(h_core, 1))
 		push!(p_peaks, p)
 		p_fr_result = plot(legend=false,grid=false,foreground_color_subplot=:white)
 		# pars = fr_core.parameters

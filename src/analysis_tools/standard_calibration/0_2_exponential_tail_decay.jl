@@ -107,7 +107,7 @@ function plot_individual_tail_decay_constants(m::Measurement)
     std_harm_means::Vector{T} = [harmmean(tdcs[:, ichn] .- harm_means[ichn]) for ichn in 1:n_channel]
     ranges = [harm_means[ichn] - 20std_harm_means[ichn]:std_harm_means[ichn]/5:harm_means[ichn] + 20std_harm_means[ichn] for ichn in 1:n_channel]
     h_tdcs::Vector{Histogram} = Histogram[ fit(Histogram, tdcs[:, ichn], ranges[ichn]) for ichn in 1:n_channel]
-    
+   
     plts = [ plot(h_tdcs[ichn], st=:step, label = "Chn $(ichn)", xlabel = "τ / μs", ylabel = "Counts") for ichn in 1:n_channel ]
     p_1d_hists = plot(plts..., legendfontsize = 14, guidefontsize = 14, tickfontsize = 12, titlefontsize = 14)
     savefig(m, p_1d_hists, "0_2_exponential_tail_decay", "decay_constant_distributions", fmt=:png )        

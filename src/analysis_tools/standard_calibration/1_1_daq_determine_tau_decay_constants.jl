@@ -91,7 +91,7 @@ function daq_determine_decay_time_constants(m; photon_lines = [609.312, 911.204,
         p = histogramdisplay(hists, det)
         for (i, fr) in enumerate(fit_results)
             plotrange = fr.fitted_parameters[3] - 4 * fr.fitted_parameters[2], fr.fitted_parameters[3] + 4 * fr.fitted_parameters[2]
-            plot!(p, fr, subplot=det.channel_display_order[i])#, xlims=plotrange)
+            plot!(p, fr, subplot=det.channel_display_order[i], bin_width = StatsBase.binvolume(hists[1], 1))#, xlims=plotrange)
         end
         # savefig(m, p, "2_5_tau_decay_constants", "tau_decay_constants", fmt=:png); p = 0;
     end

@@ -1,4 +1,4 @@
-function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration_constant::Real; create_plots = true)
+function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration_constant::Real; create_plots = true, ct_peak_min_shift = 0.25)
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     n_channel = get_number_of_channel(m)
     n_segments = n_channel - 1
@@ -42,7 +42,7 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
         mp = (h.edges[1][1:length(h.edges[1])-1] .+ 0.5 * step(h.edges[1]))
         ct_peak_idx = findmax(h.weights[1:StatsBase.binindex(h, 0.2)])[2]
         ct_peak_pos = mp[ct_peak_idx]
-        start_idx = StatsBase.binindex(h, ct_peak_pos + 0.25)
+        start_idx = StatsBase.binindex(h, ct_peak_pos + ct_peak_min_shift)
         cal_peak_idx = findmax(h.weights[start_idx:end])[2] - 1
         # if iseg == 4 ## <- modify for distorted pulses
         #     start_idx = StatsBase.binindex(h, ct_peak_pos + 0.6)
@@ -82,7 +82,8 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
         # cal_peak_pos[iseg] = fr.parameters[3]
         if create_plots
             p = plot(h, st=:step, label="", title="seg$iseg")
-            plot!(p, fitf, label="")
+            bw = StatsBase.binvolume(h, 1)
+            plot!(p, fitf, label="", bin_width = bw)
             push!(plts, p)
         end
     end
@@ -143,7 +144,8 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
                 c[ichn_src, ichn_tar] = ct_peak_pos * c[1, 1]
                 if create_plots
                     p = plot(h, st=:step, legend=false, title="mpa ratio: seg$(iseg_tar) / core", )
-                    plot!(p, fitf)
+                    bw = StatsBase.binvolume(h, 1)
+                    plot!(p, fitf, bin_width = bw)
                     # plot!(p, fr)
                     push!(plts, p)
                 end
