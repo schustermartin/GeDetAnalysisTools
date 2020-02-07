@@ -1,4 +1,5 @@
 function determine_individual_decay_time_constants( m; take_every_n_sample_for_fit = 25 )
+    println(m.name)
     T::DataType = Float32
     n_channel::Int = get_number_of_channel(m)
     n_segments::Int = n_channel - 1

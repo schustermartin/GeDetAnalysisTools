@@ -73,4 +73,6 @@ module GeDetAnalysisTools
     include("filters/electronics_filter.jl")
     include("filters/read_parameters.jl")
 
+    include("utils/utils.jl")
+
 end # module
