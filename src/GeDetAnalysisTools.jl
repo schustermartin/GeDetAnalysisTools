@@ -6,7 +6,6 @@ module GeDetAnalysisTools
     using Distributed
     using Distributions
     using DSP
-    using GeDetPulseShapeAnalysisToolsTmp
     using HDF5
     using JSON
     using LaTeXStrings

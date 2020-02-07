@@ -48,8 +48,8 @@ end
 
 function get_pulses(fn::AbstractString, event_index::Int, sampling_rate::T, tdcs::Vector{T}, bl, bl_inv, decay_factors, c)::AbstractArray{T, 2} where {T <: Real}
     daq_pulses = get_daq_pulse(fn, event_index)
-    tdc_pulses::Array{T, 2} = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(T.(daq_pulses), bl, bl_inv, decay_factors);
-    return GeDetPulseShapeAnalysisToolsTmp.calibrate_pulses(tdc_pulses, c)
+    tdc_pulses::Array{T, 2} = baseline_substraction_and_decay_correction(T.(daq_pulses), bl, bl_inv, decay_factors);
+    return calibrate_pulses(tdc_pulses, c)
 end
 function get_pulses(m::Measurement, event_index::Int, file_number::Int=1)::AbstractArray{<:Real, 2}
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
@@ -97,8 +97,8 @@ function get_pulses(m::Measurement, energy_range::Interval; single_channel_idx::
                     evt_energies::Vector{T} = chunk_energies[:, i]
                     if evt_energies[1] in T_energy_range
                         if isapprox(evt_energies[1], evt_energies[single_channel_idx], atol = T_single_channel_energy_atol)
-                            waveforms::Array{T, 2} = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(chunk_pulses[:, :, i], bl, bl_inv, decay_factors); 
-                            GeDetPulseShapeAnalysisToolsTmp.calibrate_pulses!(waveforms, c)
+                            waveforms::Array{T, 2} = baseline_substraction_and_decay_correction(chunk_pulses[:, :, i], bl, bl_inv, decay_factors); 
+                            calibrate_pulses!(waveforms, c)
                             n_pulses_selected += 1
                             max_n_pulses[n_pulses_selected] = waveforms
                         end

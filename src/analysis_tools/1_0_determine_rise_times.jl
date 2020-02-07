@@ -1,3 +1,48 @@
+@fastmath function determine_risetime(data::Array{T, 1}, threshold_min::T, threshold_max::T, pulse_energy::T, Δt::T)::Tuple{T, T, T} where {T <: Real}
+	@inbounds begin
+		tmin = threshold_min * pulse_energy
+		tmax = threshold_max * pulse_energy
+		i_middle_point = 0
+		i = 1
+		while data[i] < 0.5 * (threshold_max + threshold_min) * pulse_energy
+			i += 1
+		end
+
+		i_middle_point = i
+
+		i_rt_start_low = 0
+		i_rt_start_up  = 0
+		i_rt_stop_low  = 0
+		i_rt_stop_up   = 0
+		i = i_middle_point
+		while data[i] > tmin
+			i -= 1
+		end
+		i_rt_start_up  = i + 1
+		i_rt_start_low = i
+
+		#y=mx+t
+		m_start = data[i_rt_start_up] - data[i_rt_start_low]
+		t_start = data[i_rt_start_low]
+		x_start = (tmin - t_start) / m_start
+		rt_start = (i_rt_start_low - 1 + x_start) * Δt # Δt = inv(sampling_rate)
+
+		i = i_middle_point
+		while data[i] < tmax
+			i += 1
+		end
+		i_rt_stop_up  = i
+		i_rt_stop_low = i - 1
+		m_stop = data[i_rt_stop_up] - data[i_rt_stop_low]
+		t_stop = data[i_rt_stop_low]
+		x_stop = (tmax - t_stop) / m_stop
+		rt_stop = (i_rt_stop_low - 1 + x_stop) * Δt
+		
+		return rt_stop - rt_start, rt_start, rt_stop
+	end
+end
+
+
 function determine_rise_times(m::Measurement, rise_time_windows::Vector{<:Tuple{<:Real, <:Real}};
                                 waveform_filter::Function = wv -> wv,
                                 overwrite::Bool = false, debug::Bool = false)
@@ -57,14 +102,14 @@ function determine_rise_times(m::Measurement, rise_time_windows::Vector{<:Tuple{
                     chunk_rise_times::Array{T, 4} = Array{T, 4}(undef, n_rs_values, n_channel, length(evt_range), n_risetimes )
                     for i in 1:length(evt_range)
                         evt_energies::Vector{T} = chunk_energies[:, i]
-                        waveforms::Array{T, 2} = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(chunk_pulses[:, :, i], bl, bl_inv, decay_factors);
-                        GeDetPulseShapeAnalysisToolsTmp.calibrate_pulses!(waveforms, c)
+                        waveforms::Array{T, 2} = baseline_substraction_and_decay_correction(chunk_pulses[:, :, i], bl, bl_inv, decay_factors);
+                        calibrate_pulses!(waveforms, c)
 
                         for ichn in 1:n_channel
                             processed_waveform::Vector{T} = waveform_filter(waveforms[:, ichn])
 
                             for irs in 1:n_risetimes
-                                rs::T, rs_start::T, rs_stop::T = GeDetPulseShapeAnalysisToolsTmp.determine_risetime(processed_waveform,
+                                rs::T, rs_start::T, rs_stop::T = determine_risetime(processed_waveform,
                                                                                                                     rise_time_windows[irs][1], rise_time_windows[irs][2],
                                                                                                                     evt_energies[ichn], Δt)
                                 chunk_rise_times[:, ichn, i, irs] = [rs, rs_start]
@@ -171,8 +216,8 @@ function determine_pulse_level_time_stamps(m::Measurement, pulse_levels::Vector{
                 chunk_rise_times::Array{T, 3} = Array{T, 3}(undef, n_channel, length(evt_range), n_pulse_levels )
                 for i in 1:length(evt_range)
                     evt_energies::Vector{T} = chunk_energies[:, i]
-                    waveforms::Array{T, 2} = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(chunk_pulses[:, :, i], bl, bl_inv, decay_factors); 
-                    GeDetPulseShapeAnalysisToolsTmp.calibrate_pulses!(waveforms, c)
+                    waveforms::Array{T, 2} = baseline_substraction_and_decay_correction(chunk_pulses[:, :, i], bl, bl_inv, decay_factors); 
+                    calibrate_pulses!(waveforms, c)
                     
                     filter_function = begin
                         f = identity
@@ -188,7 +233,7 @@ function determine_pulse_level_time_stamps(m::Measurement, pulse_levels::Vector{
                         processed_waveform::Vector{T} = filter_function(waveforms[:, ichn])
                         
                         for ipl in 1:n_pulse_levels
-                            rs::T, rs_start::T, rs_stop::T = GeDetPulseShapeAnalysisToolsTmp.determine_risetime(processed_waveform, 
+                            rs::T, rs_start::T, rs_stop::T = determine_risetime(processed_waveform, 
                                                                                                                 pulse_levels[ipl], T(1), 
                                                                                                                 evt_energies[ichn], Δt)
                             if isnan(rs_start)

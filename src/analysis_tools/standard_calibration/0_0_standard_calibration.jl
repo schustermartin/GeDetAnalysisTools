@@ -1,3 +1,5 @@
+include("0_1_0_pulse_functions.jl")
+
 include("0_1_baseline_analysis.jl")
 include("0_2_exponential_tail_decay.jl")
 

@@ -44,8 +44,8 @@ function determine_AoverE( m::Measurement;
                 chunk_AoverE::Array{T, 2} = Array{T, 2}(undef, n_channel, length(evt_range) )
                 for i in 1:length(evt_range)
                     evt_energies::Vector{T} = chunk_energies[:, i]
-                    waveforms::Array{T, 2} = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(chunk_pulses[:, :, i], bl, bl_inv, decay_factors);
-                    GeDetPulseShapeAnalysisToolsTmp.calibrate_pulses!(waveforms, c)
+                    waveforms::Array{T, 2} = baseline_substraction_and_decay_correction(chunk_pulses[:, :, i], bl, bl_inv, decay_factors);
+                    calibrate_pulses!(waveforms, c)
                     filter_function = begin
                         f = identity
                         if some_filters
