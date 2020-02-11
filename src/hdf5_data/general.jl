@@ -38,6 +38,20 @@ function get_number_of_channel(m::Measurement)::Int
 	return n_channel
 end
 
+function get_number_of_samples(fn::AbstractString)::Int
+	h = h5open(fn, "r+")
+	g = g_open(h,"DAQ_Data")
+	d = d_open(g,"daq_pulses")
+	s = size(d, 1)
+	close(h)
+	return s
+end
+function get_number_of_samples(m::Measurement)::Int
+	inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+	n_channel = get_number_of_samples(inputfiles[1])
+	return n_channel
+end
+
 function get_eltype_of_dataset(fn::AbstractString, gn::AbstractString, dn::AbstractString)::Type
 	h = h5open(fn, "r")
 	g = g_open(h, gn)
