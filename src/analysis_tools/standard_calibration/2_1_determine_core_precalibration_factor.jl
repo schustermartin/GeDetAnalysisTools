@@ -1,8 +1,10 @@
 
 
-function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], overwrite=false,
-    min_n_peaks = length(photon_lines), max_n_peaks = 4 * length(photon_lines), nbins=6000, peak_threshold=10., peak_sigma=4.0, 
-    averWindow=3, deconIterations=3, create_plots=true, α=0.01, rtol=1e-3, inputfiles = missing)
+function determine_core_precalibration_factor_with_mpas(m::Measurement; 
+    photon_lines=[609.312, 911.204, 1120.287, 1460.830, 1764.494, 2614.533], overwrite=false,
+    min_n_peaks = length(photon_lines), max_n_peaks = 4 * length(photon_lines), nbins=6000, 
+    peak_threshold=10., peak_sigma=4.0,     averWindow=3, deconIterations=3, create_plots=true, 
+    α=0.01, rtol=1e-3, inputfiles = missing)
 
     ismissing(inputfiles) ? inputfiles = gather_absolute_paths_to_hdf5_input_files(m) : nothing
 
@@ -22,7 +24,7 @@ function determine_core_precalibration_factor_with_mpas(m::Measurement; photon_l
     #     peak_threshold = 0.9 * peak_threshold
     # end
 
-    # c0_pre = RadiationSpectra.determine_calibration_constant_through_peak_ratios(fPositionX, photon_lines, α = α, rtol = rtol )
+        # c0_pre = RadiationSpectra.determine_calibration_constant_through_peak_ratios(fPositionX, photon_lines, α = α, rtol = rtol )
     c_precal, h_deconv, peakPositions, threshold = RadiationSpectra.determine_calibration_constant_through_peak_ratios(  h_core, photon_lines, 
                                                                                                         min_n_peaks=min_n_peaks, max_n_peaks = max_n_peaks, 
                                                                                                         threshold = peak_threshold, α=α, σ=peak_sigma, rtol=rtol)

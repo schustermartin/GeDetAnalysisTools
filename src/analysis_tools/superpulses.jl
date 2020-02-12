@@ -50,8 +50,8 @@ function determine_superpulse(m::Measurement, channels::Vector{Int}, energyrange
 					for ichn in eachindex(channels)
 						if (elimit_max >= energies[channels[ichn], ievt] >= elimit_min) && (d_daq_ssi[ievt][1] == UInt8(channels[ichn]))
 							n_individual_pulses[ichn] += 1
-							tdc_pulses = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(Float32.(chunk_pulses[:, :, i]), bl, bl_inv, decay_factors);
-							superpulses[ichn] += GeDetPulseShapeAnalysisToolsTmp.calibrate_pulses(tdc_pulses, c)
+							tdc_pulses = baseline_substraction_and_decay_correction(Float32.(chunk_pulses[:, :, i]), bl, bl_inv, decay_factors);
+							superpulses[ichn] += calibrate_pulses(tdc_pulses, c)
 						end
 					end
 				end
@@ -146,8 +146,8 @@ function determine_superpulse_w_alignment(m::Measurement, channels::Vector{Int},
 				if (elimit_max >= energies[core, ievt] >= elimit_min) && (d_daq_ssi[ievt][1] > UInt8(0))
 					for ichn in eachindex(channels)
 						if (elimit_max >= energies[channels[ichn], ievt] >= elimit_min) && (d_daq_ssi[ievt][1] == UInt8(channels[ichn]))
-							tdc_pulses = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(Float32.(chunk_pulses[:, :, i]), bl, bl_inv, decay_factors);
-							corr_pulse =GeDetPulseShapeAnalysisToolsTmp.calibrate_pulses(tdc_pulses, c)
+							tdc_pulses = baseline_substraction_and_decay_correction(Float32.(chunk_pulses[:, :, i]), bl, bl_inv, decay_factors);
+							corr_pulse =calibrate_pulses(tdc_pulses, c)
 							idx = try find_mid_point_idx_fast(smooth20_3(corr_pulse[:,1]), mean(corr_pulse[2750:end,1]))
 							catch err
 								@warn "strange"
@@ -220,8 +220,8 @@ function plot_selected_pulses(m, channel,  energyrange, n_pulses_to_plot; T::Typ
 
 						if (elimit_max >= energies[channel, ievt] >= elimit_min) && (d_daq_ssi[ievt][1] == UInt8(channel)) && (d_daq_pileup[ievt][1]==0x00)
 							n_individual_pulses += 1
-							tdc_pulses = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(Float32.(chunk_pulses[:, :, i]), bl, bl_inv, decay_factors);
-							plot!(p, GeDetPulseShapeAnalysisToolsTmp.calibrate_pulses(tdc_pulses, c)[:,1], label = "", title="# $n_pulses_to_plot pulses")
+							tdc_pulses = baseline_substraction_and_decay_correction(Float32.(chunk_pulses[:, :, i]), bl, bl_inv, decay_factors);
+							plot!(p, calibrate_pulses(tdc_pulses, c)[:,1], label = "", title="# $n_pulses_to_plot pulses")
 						end
 
 					end
@@ -286,8 +286,8 @@ function correct_single_pulse(m, evt_idx, channels = [1,2,3,4,5], T::Type = Floa
             decay_factors[chn] = exp( - (1 / sr) / (tau_decay_constants[chn] * (10^(-6.0)) ) )
         end
         daq_pulse = Float32.(d_daq_pulses[:, :, evt_idx][:,:,1])
-    	tdc_pulse = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(daq_pulse, bl, bl_inv, decay_factors);
-    	corrected_pulse = GeDetPulseShapeAnalysisToolsTmp.calibrate_pulses(tdc_pulse, c)
+    	tdc_pulse = baseline_substraction_and_decay_correction(daq_pulse, bl, bl_inv, decay_factors);
+    	corrected_pulse = calibrate_pulses(tdc_pulse, c)
 
         close(h5f)
         daq_pulse, tdc_pulse, corrected_pulse

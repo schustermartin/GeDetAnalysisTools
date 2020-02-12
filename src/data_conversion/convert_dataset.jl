@@ -39,8 +39,8 @@ function convert_data_files_sis3316_to_hdf5( raw_dir = pwd();
 
                 if compress_raw_data
                     @info "Now on $(myid()): Compression dat files."
-                    @info "Now on $(myid()): Compression dat files. Skipping..."
-                    # if (file_is_compressed && isfile(fn)) rm(fn) else compress_file(fn, keep_input_files=false) end
+                    # @info "Now on $(myid()): Compression dat files. Skipping..."
+                    if (file_is_compressed && isfile(fn)) rm(fn) else compress_file(fn, keep_input_files=false) end
                 end
 
                 @info "Now on $(myid()): Finished with $(ofn)."

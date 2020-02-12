@@ -65,8 +65,8 @@ function sort(d::Dataset; kwargs...)::Dataset
 end
 
 function sort!(d::Dataset; kwargs...)::Nothing
-	ms_sorted = sort(d.measurements; kwargs...)
-	d.measurements = ms_sorted
+	ms_sorted = sort(d.measurements; kwargs...);
+	d.measurements[:] = ms_sorted[:];
 	return nothing
 end
 

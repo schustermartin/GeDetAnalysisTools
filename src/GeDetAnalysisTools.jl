@@ -6,7 +6,6 @@ module GeDetAnalysisTools
     using Distributed
     using Distributions
     using DSP
-    using GeDetPulseShapeAnalysisToolsTmp
     using HDF5
     using JSON
     using LaTeXStrings
@@ -17,6 +16,7 @@ module GeDetAnalysisTools
     using Measures
     using ParallelProcessingTools
     using ProgressMeter
+    using RadiationDetectorSignals
     using RadiationSpectra 
     using RecipesBase
     using SIS3316Digitizers
@@ -25,6 +25,7 @@ module GeDetAnalysisTools
     using Statistics
     using StatsBase
     using Unitful
+    using IntervalSets
 
     import Plots: @layout, grid
     import Plots: plot, plot!
@@ -70,5 +71,7 @@ module GeDetAnalysisTools
     
     include("filters/electronics_filter.jl")
     include("filters/read_parameters.jl")
+
+    include("utils/utils.jl")
 
 end # module

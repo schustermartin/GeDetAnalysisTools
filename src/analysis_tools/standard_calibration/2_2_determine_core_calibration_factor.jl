@@ -19,7 +19,7 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
     c::T = 1.0
     h0 = fit(Histogram, precal_energies, edges, closed=:left)
 
-    peak_fits = RadiationSpectra.FitFunction[ RadiationSpectra.FitFunction{T}( gauss_plus_first_order_polynom, 1, 5 ) for ichn in 1:length(photon_lines) ]
+    peak_fits = RadiationSpectra.FitFunction[ RadiationSpectra.FitFunction{T}( RadiationSpectra.Gauss_plus_linear_background, 1, 5 ) for ichn in 1:length(photon_lines) ]
     # peak_fits = GeDetSpectrumAnalyserTmp.Fit[]
     for (i, pl) in enumerate(photon_lines)
         line::T = pl
@@ -58,9 +58,10 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
             fitrange = (line - 20 ):(line + 20 ) # +- 20 keV
             first_bin = StatsBase.binindex(h0, first(fitrange))
             last_bin  = StatsBase.binindex(h0, last(fitrange))
-            pfp = plot( h0.edges[1][first_bin]:step(h0.edges[1]):h0.edges[1][last_bin], h0.weights[first_bin:last_bin], st=:step, label="Data (precalibrated)" )
-            plot!(peak_fits[ipl], label="LSQ Fit")
-            plot!(peak_fits[ipl], label="LSQ Fit - Init", use_initial_parameters = true)
+            pfp = plot( h0.edges[1][first_bin]:step(h0.edges[1]):h0.edges[1][last_bin], h0.weights[first_bin:last_bin], st=:step, label="Data (precalibrated)")
+            bw = StatsBase.binvolume(h0, 1)
+            plot!(peak_fits[ipl], label="LSQ Fit", bin_width = bw)
+            plot!(peak_fits[ipl], label="LSQ Fit - Init", use_initial_parameters = true, bin_width = bw)
             plot!([pl], st=:vline, color=:green, label="Photon line")
             push!(peak_fit_plots, pfp)
         end

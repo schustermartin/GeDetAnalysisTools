@@ -42,7 +42,7 @@ end
 
 function SUSIE()
     susie = Detector()
-    susie.name = "Super Siegfried"
+    susie.name = "SuSie"
     susie.n_channels = 20
     susie.crystal_length = 70
     susie.crystal_radius = 37.5
@@ -84,14 +84,14 @@ function segBEGe()
     return s3
 end
 
-function Ponama()
+function Ponama(;nchannel = 1)
     d = Detector()
     d.name = "Ponama"
-    d.n_channels = 1
-    d.channel_display_order = [1]
-    d.channel_display_layout = [1]
+    d.n_channels = nchannel
+    d.channel_display_order = collect(1:nchannel)
+    d.channel_display_layout = collect(1:nchannel)
     function layout_func()
-        return @layout (1,1)
+        return nchannel
     end
     d.channel_plot_layout = layout_func
     return d

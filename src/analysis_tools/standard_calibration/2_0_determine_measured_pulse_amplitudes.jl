@@ -30,8 +30,8 @@ function determine_measured_pulse_amplitudes(m::Measurement, tau_decay_constants
             @fastmath function process_chunk(chunk_pulses::Array{<:Real, 3}, evt_range::AbstractRange, bl::Int, bl_inv::T, decay_factors::Array{T, 1}, decay_window_start_index::Int)::Array{T, 2} where {T<:AbstractFloat}
                 mpas = Array{T, 2}(undef, n_channel, length(evt_range))
                 @inbounds for i in eachindex(1:length(evt_range))
-                    tdc_pulses::Array{T, 2} = GeDetPulseShapeAnalysisToolsTmp.baseline_substraction_and_decay_correction(Float32.(chunk_pulses[:, :, i]), bl, bl_inv, decay_factors);
-                    mpas[:, i] = [GeDetPulseShapeAnalysisToolsTmp.fastmean(tdc_pulses[decay_window_start_index:end, ichn], decay_window_length_inv) for ichn in eachindex(1:n_channel) ]
+                    tdc_pulses::Array{T, 2} = baseline_substraction_and_decay_correction(Float32.(chunk_pulses[:, :, i]), bl, bl_inv, decay_factors);
+                    mpas[:, i] = [fastmean(tdc_pulses[decay_window_start_index:end, ichn], decay_window_length_inv) for ichn in eachindex(1:n_channel) ]
                 end
                 return mpas
             end

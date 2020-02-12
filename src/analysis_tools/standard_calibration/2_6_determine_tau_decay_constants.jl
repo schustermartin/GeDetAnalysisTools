@@ -47,6 +47,10 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
         end
     end
 
+    # for i in eachindex(hists)
+    #     hists[i] = normalize!(float(hists[i])) 
+    # end
+
     T = Float64
     # fit_results = GeDetSpectrumAnalyserTmp.Fit[]
     fit_results = RadiationSpectra.FitFunction[]
@@ -81,9 +85,11 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
         p = histogramdisplay(hists, det)
         for (i, fr) in enumerate(fit_results)
             plotrange = fr.fitted_parameters[3] - 4 * fr.fitted_parameters[2], fr.fitted_parameters[3] + 4 * fr.fitted_parameters[2]
-            plot!(p, fr, subplot=det.channel_display_order[i])#, xlims=plotrange)
+            bw = StatsBase.binvolume(hists[i], 1)
+            bw = 1.0 # in case of lsqfit! take always 1
+            plot!(p, fr, subplot=det.channel_display_order[i], bin_width = bw )#, xlims=plotrange)
         end
-        savefig(m, p, "2_5_tau_decay_constants", "tau_decay_constants", fmt=:png); p = 0;
+        savefig(m, p, "2_6_tau_decay_constants", "tau_decay_constants", fmt=:png); p = 0;
     end
     tdcs::Array{Float64, 1} = [ fr.fitted_parameters[3] for fr in fit_results ]
 
@@ -92,8 +98,8 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
         tdcs_init = read_analysis_result_dataset(m, "init_tau_decay_constants")
         tdcs_init_err = read_analysis_result_dataset(m, "init_tau_decay_constants_err")
         for i in eachindex(tdcs_init_err) if tdcs_init_err[i] < 0 tdcs_init_err[i] = 0 end end
-        plot!(tdcs_init, yerr=tdcs_init_err, label="Init τ's", st=:scatter)
-        savefig(m, p, "2_5_tau_decay_constants", "scatter_tau_decay_constants", fmt=:png); p = 0;
+        plot!(tdcs_init, label="Init τ's", st=:scatter)
+        savefig(m, p, "2_6_tau_decay_constants", "scatter_tau_decay_constants", fmt=:png); p = 0;
     end
 
 
