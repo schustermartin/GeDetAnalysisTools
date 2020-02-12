@@ -50,7 +50,7 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
                                 dataarr[:] = T.(daq_pulses_evt[decay_window_start_index:take_every_n_sample_for_fit:end, ichn] .- baseline) 
 
                                 tdcs[ichn, event] = if minimum(dataarr) > zero(T)
-                                    τ::T = -inv(linear_regression(xarr, log.(dataarr)::T)[2])
+                                    τ::T = -inv(linear_regression(xarr, log.(dataarr))[2])
                                     tdc_factor * τ
                                 else
                                     zero(T)
