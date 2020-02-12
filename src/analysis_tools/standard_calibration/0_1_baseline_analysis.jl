@@ -1,19 +1,32 @@
-function linear_regression(x::Vector{<:Real}, y::Vector{<:Real})::Tuple # Substitutes linear fit --> much faster
+@fastmath function linear_regression(x::Vector{<:Real}, y::Vector{<:Real})::Tuple # Substitutes linear fit --> much faster
+    @assert length(x) == length(y) "x and y must have the same length."
     T=Float64
     x_mean::T = mean(x)
     y_mean::T = mean(y)
-
     num::T = 0.0
     nom::T = 0.0
-
-    @fastmath for i in eachindex(x)
+    for i in eachindex(x)
         x_res = (x[i] - x_mean)
         num += x_res * (y[i] - y_mean)
         nom += x_res*x_res
     end
-
-    @fastmath slope::T = num/nom
-    @fastmath offset::T = y_mean - slope * x_mean
+    slope::T = num/nom
+    offset::T = y_mean - slope * x_mean
+    return offset, slope
+end
+@fastmath function linear_regression(x::Vector{T}, y::Vector{T})::Tuple{T, T} where {T <: AbstractFloat} # Substitutes linear fit --> much faster
+    @assert length(x) == length(y) "x and y must have the same length."
+    x_mean::T = mean(x)
+    y_mean::T = mean(y)
+    num::T = 0.0
+    nom::T = 0.0
+    @inbounds for i in eachindex(x)
+        x_res = (x[i] - x_mean)
+        num += x_res * (y[i] - y_mean)
+        nom += x_res * x_res
+    end
+    slope::T = num / nom
+    offset::T = y_mean - slope * x_mean
     return offset, slope
 end
 
