@@ -9,12 +9,12 @@ mutable struct Dataset <: AbstractVector{Measurement}
 	Dataset(name::AbstractString, data_dir_name::AbstractString, measurements::Array{Measurement, 1}) = new(name, data_dir_name, measurements, :red)
 end
 
-function Dataset(name::AbstractString, data_dir_name::AbstractString)::Dataset
-	Dataset(name, data_dir_name, data_set_from_conv_data(data_dir_name))
+function Dataset(name::AbstractString, data_dir_name::AbstractString; subdir = missing)::Dataset
+	Dataset(name, data_dir_name, data_set_from_conv_data(data_dir_name, subdir = subdir))
 end
 
-function Dataset(name::AbstractString, data_dir_name::AbstractString, detector::Detector, daq::DAQ)::Dataset
-	ms = data_set_from_conv_data(data_dir_name)
+function Dataset(name::AbstractString, data_dir_name::AbstractString, detector::Detector, daq::DAQ; subdir = missing)::Dataset
+	ms = data_set_from_conv_data(data_dir_name, subdir = subdir)
 	for m in ms
 		m.daq = daq
 		m.detector = detector

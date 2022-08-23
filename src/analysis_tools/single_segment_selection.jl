@@ -26,13 +26,13 @@ d::T = allowed relative difference in unit one.
 end
 
 
-@fastmath function get_single_segment_channel_index_abs(energies::Array{T, 1}, d::T)::UInt8 where {T<:Real}
+@fastmath function get_single_segment_channel_index_abs(energies::Array{T, 1}, d::T, d_high_energy::T = d)::UInt8 where {T<:Real}
 	@inbounds begin
 		idx::UInt8 = 0
 		counter::UInt8 = 0
 		l::UInt8 = length(energies)
 		for ichn in UInt8(2):l
-			if ss_event_abs(energies[1], energies[ichn], d)
+			if ss_event_abs(energies[1], energies[ichn], energies[1] < T(5000) ? d : d_high_energy)
 				idx = ichn
 				counter += one(UInt8)
 			end

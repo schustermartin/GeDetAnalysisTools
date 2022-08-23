@@ -11,13 +11,13 @@ function recalculate_energies(m::Measurement, c::Array{<:Real, 2}; create_plots=
     end
 
     for f in inputfiles
-        new_pulse_format = is_new_pulse_format(f)
+        new_pulse_format = GAT.is_new_pulse_format(f)
         if !new_pulse_format error("Measurement $(m.name) does not have new pulse format. Old one ist not implemented yet.") end
         h5f = h5open(f, "r+")
         try
             g_daq = g_open(h5f, "DAQ_Data")
             d_daq_pulses = d_open(g_daq, "daq_pulses")
-            chunksize_daq = get_chunk(d_daq_pulses)
+            chunksize_daq = HDF5.get_chunk(d_daq_pulses)
             n_samples, n_channel, n_events = new_pulse_format ? size(d_daq_pulses) : (size(d_daq_pulses, 2), size(d_daq_pulses, 1), size(d_daq_pulses, 3))
             chunksize = n_channel, chunksize_daq[3]
             g_pd = exists(h5f, "Processed_data") ? g_open(h5f, "Processed_data") : g_create(h5f, "Processed_data")
@@ -26,7 +26,7 @@ function recalculate_energies(m::Measurement, c::Array{<:Real, 2}; create_plots=
             d_energies = d_create(g_pd, "energies", Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize )
 
             @fastmath @inbounds begin
-                @showprogress for evt_range in event_range_iterator(n_events, chunksize[2])
+                @showprogress for evt_range in GAT.event_range_iterator(n_events, chunksize[2])
                     chunk_mpas::Array{T, 2} = d_measured_pulse_amplitudes[:, evt_range]
                     chunk_energies::Array{T, 2} = Array{T, 2}(undef, n_channel, length(evt_range))
                     for i in eachindex(1:length(evt_range))
@@ -53,7 +53,7 @@ function recalculate_energies(m::Measurement, c::Array{<:Real, 2}; create_plots=
     end
 
     if create_plots
-        p = energyhistogramdisplay(hists, m.detector, yscale=:log10, size=(2200,1100))
+        p = energyhistogramdisplay(hists, m.detector, size=(2200,1100))
         savefig(m, p, "2_4_recalculated_energies", "energy_spectra", fmt=:png); p = 0;
 
         p = plot(hists[1], st=:step, label="Core", xlabel="E / keV", size=(1600,900), yscale=:log10)

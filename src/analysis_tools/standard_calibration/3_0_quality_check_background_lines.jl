@@ -1,5 +1,5 @@
 function quality_check(	m::Measurement;	overwrite=false, quality_check_photon_lines=[])
-	energies = get_energies(m)
+	energies = get_energies(m)[:, get_event_indices(GAT.get_event_flags(m), :healthy) ]
 	n_channel::Int, n_events::Int = size(energies)
 	multi_channel_det::Bool = n_channel > 1
 	T = Float64
@@ -20,13 +20,13 @@ function quality_check(	m::Measurement;	overwrite=false, quality_check_photon_li
 	if multi_channel_det photon_lines_fit_parameters_sumseg::Array{Float64, 2} = zeros(Float64, 6, length(photon_lines)) end
 
 	h_core    = float(Histogram(0:1.0:3000, :left))
-	if multi_channel_det 
+	if multi_channel_det
 		h_sumsegs = float(Histogram(0:1.0:3000, :left))
 		sum_seg_energies = zeros(eltype(energies), n_events )
 		for i in eachindex(sum_seg_energies)
 			sum_seg_energies[i] = sum(energies[2:end, i])
 		end
-		append!(h_sumsegs, sum_seg_energies) 
+		append!(h_sumsegs, sum_seg_energies)
 	end
 	append!(h_core, energies[1, :])
 	if !ismissing(daqT)
@@ -52,28 +52,29 @@ function quality_check(	m::Measurement;	overwrite=false, quality_check_photon_li
 		coeff_1::Float64 = 0
 		# fitrange = pl - 10:pl + 10
 		fitrange = (pl - 10, pl + 10)
-		fitf_core = RadiationSpectra.FitFunction{T}( RadiationSpectra.Gauss_plus_linear_background, 1, 5 )
+		fitf_core = RadiationSpectra_beforeBAT.FitFunction{T}( RadiationSpectra_beforeBAT.Gauss_plus_linear_background, 1, 5 )
 		set_fitranges!(fitf_core, (fitrange,))
 		set_initial_parameters!(fitf_core, [scale, σ, μ, coeff_0, coeff_1])
-		RadiationSpectra.lsqfit!(fitf_core, h_core)
-		# fr_core = GeDetSpectrumAnalyserTmp.fit(h_core, fitrange, RadiationSpectra.Gauss_plus_linear_background, Float64[scale, σ, μ, coeff_0, coeff_1])
-		# println(RadiationSpectra.get_fitted_parameters(fitf_core))
+		RadiationSpectra_beforeBAT.lsqfit!(fitf_core, h_core)
+		# fr_core = GeDetSpectrumAnalyserTmp.fit(h_core, fitrange, RadiationSpectra_beforeBAT.Gauss_plus_linear_background, Float64[scale, σ, μ, coeff_0, coeff_1])
+		# println(RadiationSpectra_beforeBAT.get_fitted_parameters(fitf_core))
 		if multi_channel_det
 			scale = maximum_counts_segs
-			fitf_segs = RadiationSpectra.FitFunction{T}( RadiationSpectra.Gauss_plus_linear_background, 1, 5 )
+			fitf_segs = RadiationSpectra_beforeBAT.FitFunction{T}( RadiationSpectra_beforeBAT.Gauss_plus_linear_background, 1, 5 )
 			set_fitranges!(fitf_segs, (fitrange,))
 			set_initial_parameters!(fitf_segs, [scale, σ, μ, coeff_0, coeff_1])
-			RadiationSpectra.lsqfit!(fitf_segs, h_sumsegs)
-			# println(RadiationSpectra.get_fitted_parameters(fitf_segs))
-		# fr_segs = GeDetSpectrumAnalyserTmp.fit(h_sumsegs, fitrange, RadiationSpectra.Gauss_plus_linear_background, Float64[scale, σ, μ, coeff_0, coeff_1])
+			RadiationSpectra_beforeBAT.lsqfit!(fitf_segs, h_sumsegs)
+			# println(RadiationSpectra_beforeBAT.get_fitted_parameters(fitf_segs))
+		# fr_segs = GeDetSpectrumAnalyserTmp.fit(h_sumsegs, fitrange, RadiationSpectra_beforeBAT.Gauss_plus_linear_background, Float64[scale, σ, μ, coeff_0, coeff_1])
 		end
 
 		# plot!(fr_segs)
 		# plot!(fr_core)
 		if multi_channel_det plot!(fitf_segs) end
-		plot!(fitf_core, bin_width = StatsBase.binvolume(h_core, 1))
+		plot!(fitf_core)#, bin_width = StatsBase.binvolume(h_core, 1))
 		push!(p_peaks, p)
-		p_fr_result = plot(legend=false,grid=false,foreground_color_subplot=:white)
+		#p_fr_result = plot(legend=false,grid=false,foreground_color_subplot=:white)
+		p_fr_result = plot(legend=false,grid=false, axis = false)
 		# pars = fr_core.parameters
 		pars = collect(get_fitted_parameters(fitf_core))
 		photon_lines_fit_parameters_core[2:end, ipl] = pars

@@ -11,7 +11,7 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
     time_array_of_pulses = get_time_array_of_pulses(m.daq)
     decay_window_start_index = m.daq.n_samples-m.daq.decay_window_length+1
     xarr::Vector{T} = time_array_of_pulses[decay_window_start_index:take_every_n_sample_for_fit:end]
-    dataarr::Vector{T} = zeros(T, length(xarr)) 
+    dataarr::Vector{T} = zeros(T, length(xarr))
 
     core::UInt8 = 1
     tdc_factor::T = 1e6
@@ -22,12 +22,12 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
         h5f = h5open(f, "r+")
         try
             g_daq = g_open(h5f, "DAQ_Data")
-            
+
             g_pd = exists(h5f, "Processed_data") ? g_open(h5f, "Processed_data") : g_create(h5f, "Processed_data")
             d_daq_pulses = d_open(g_daq, "daq_pulses")
-            chunksize_daq = get_chunk(d_daq_pulses)
+            chunksize_daq = HDF5.get_chunk(d_daq_pulses)
             n_samples, n_channel, n_events = new_pulse_format ? size(d_daq_pulses) : (size(d_daq_pulses, 2), size(d_daq_pulses, 1), size(d_daq_pulses, 3))
-            chunk_n_events = get_chunk(d_daq_pulses)[end]
+            chunk_n_events = HDF5.get_chunk(d_daq_pulses)[end]
             # n_events = 3000 # debugging
 
             chunksize = n_channel, chunksize_daq[3]
@@ -47,7 +47,7 @@ function determine_individual_decay_time_constants( m; take_every_n_sample_for_f
                             daq_pulses_evt = T.(chunk_pulses[:,:,event])
                             for ichn in eachindex(1:n_channel)
                                 baseline::T = mean(T, daq_pulses_evt[1:m.daq.baseline_length, ichn])
-                                dataarr[:] = T.(daq_pulses_evt[decay_window_start_index:take_every_n_sample_for_fit:end, ichn] .- baseline) 
+                                dataarr[:] = T.(daq_pulses_evt[decay_window_start_index:take_every_n_sample_for_fit:end, ichn] .- baseline)
 
                                 tdcs[ichn, event] = if minimum(dataarr) > zero(T)
                                     τ::T = -inv(linear_regression(xarr, log.(dataarr))[2])
@@ -87,7 +87,7 @@ function plot_individual_tail_decay_constants(m::Measurement)
             g_pd = g_open(h5f, "Processed_data")
             d_tdcs = d_open(g_pd, "tau_decay_constants")
             n_events_in_file::Int = size(d_tdcs, 2)
-            evt_range::UnitRange{Int} = last_event_idx+1:n_events_in_file         
+            evt_range::UnitRange{Int} = last_event_idx+1:n_events_in_file
             tdcs[evt_range, :] = read(d_tdcs)'
         end
     end
@@ -95,16 +95,16 @@ function plot_individual_tail_decay_constants(m::Measurement)
     std_harm_means::Vector{T} = [harmmean(tdcs[:, ichn] .- harm_means[ichn]) for ichn in 1:n_channel]
     ranges = [harm_means[ichn] - 20std_harm_means[ichn]:std_harm_means[ichn]/5:harm_means[ichn] + 20std_harm_means[ichn] for ichn in 1:n_channel]
     h_tdcs::Vector{Histogram} = Histogram[ fit(Histogram, tdcs[:, ichn], ranges[ichn]) for ichn in 1:n_channel]
-   
+
     plts = [ plot(h_tdcs[ichn], st=:step, label = "Chn $(ichn)", xlabel = "τ / μs", ylabel = "Counts") for ichn in 1:n_channel ]
     p_1d_hists = plot(plts..., legendfontsize = 14, guidefontsize = 14, tickfontsize = 12, titlefontsize = 14)
-    savefig(m, p_1d_hists, "0_2_exponential_tail_decay", "decay_constant_distributions", fmt=:png )        
-    
+    savefig(m, p_1d_hists, "0_2_exponential_tail_decay", "decay_constant_distributions", fmt=:png )
+
     daq_energies::Array{T, 2} = get_daq_energies(m)'
-    
+
     h_tdcs_vs_energy::Vector{Histogram} = Histogram[ fit(Histogram, (daq_energies[:, ichn], tdcs[:, ichn]), (0:maximum(daq_energies[:, ichn]) / 8000:maximum(daq_energies[:, ichn]), ranges[ichn])) for ichn in 1:n_channel]
     plts = [ plot(h_tdcs_vs_energy[ichn], size = (1600, 400)) for ichn in 1:n_channel ]
     p_hists_tdcs_vs_energy = plot(plts..., legendfontsize = 14, guidefontsize = 14, tickfontsize = 12, titlefontsize = 14)
-    savefig(m, p_hists_tdcs_vs_energy, "0_2_exponential_tail_decay", "decay_constant_over_energy_distributions", fmt=:png )        
+    savefig(m, p_hists_tdcs_vs_energy, "0_2_exponential_tail_decay", "decay_constant_over_energy_distributions", fmt=:png )
     p_hists_tdcs_vs_energy
 end

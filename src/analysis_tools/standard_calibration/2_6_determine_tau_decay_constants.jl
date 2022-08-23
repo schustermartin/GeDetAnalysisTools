@@ -17,7 +17,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
             T::Type = eltype(d_energies)
             energy_range = T.(energy_range)
             n_channel, n_events = size(d_energies)
-            chunk_n_events = get_chunk(d_energies)[end]
+            chunk_n_events = HDF5.get_chunk(d_energies)[end]
 
             # n_events = 1000
             evt_ranges = event_range_iterator(n_events, chunk_n_events)
@@ -48,14 +48,14 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
     end
 
     # for i in eachindex(hists)
-    #     hists[i] = normalize!(float(hists[i])) 
+    #     hists[i] = normalize!(float(hists[i]))
     # end
 
     T = Float64
     # fit_results = GeDetSpectrumAnalyserTmp.Fit[]
-    fit_results = RadiationSpectra.FitFunction[]
+    fit_results = RadiationSpectra_beforeBAT.FitFunction[]
     for ichn in eachindex(1:n_channel)
-        fitf = RadiationSpectra.FitFunction{T}( scaled_cauchy, 1, 3 )
+        fitf = RadiationSpectra_beforeBAT.FitFunction{T}( scaled_cauchy, 1, 3 )
         try
             h = hists[ichn]
             mp = midpoints(h.edges[1])
@@ -68,7 +68,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
             p0::Array{Float64, 1} = [ A, σ, μ ]
             set_fitranges!(fitf, (fitrange, ))
             set_initial_parameters!(fitf, p0)
-            RadiationSpectra.lsqfit!(fitf, h)
+            RadiationSpectra_beforeBAT.lsqfit!(fitf, h)
             # fr = GeDetSpectrumAnalyserTmp.fit(h, fitrange, scaled_cauchy, p0)
             push!(fit_results, fitf)
             # push!(fit_results, fr)
@@ -76,7 +76,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
             h = hists[ichn]
             set_fitranges!(fitf, ((35, 65), ))
             set_initial_parameters!(fitf, [maximum(h.weights), 1, 50])
-            RadiationSpectra.lsqfit!(fitf, h)
+            RadiationSpectra_beforeBAT.lsqfit!(fitf, h)
             push!(fit_results, fitf)
         end
     end
@@ -87,7 +87,7 @@ function determine_decay_time_constants(m; energy_range=200:3000, create_plots=t
             plotrange = fr.fitted_parameters[3] - 4 * fr.fitted_parameters[2], fr.fitted_parameters[3] + 4 * fr.fitted_parameters[2]
             bw = StatsBase.binvolume(hists[i], 1)
             bw = 1.0 # in case of lsqfit! take always 1
-            plot!(p, fr, subplot=det.channel_display_order[i], bin_width = bw )#, xlims=plotrange)
+            plot!(p, fr, subplot=det.channel_display_order[i])#, bin_width = bw )#, xlims=plotrange)
         end
         savefig(m, p, "2_6_tau_decay_constants", "tau_decay_constants", fmt=:png); p = 0;
     end

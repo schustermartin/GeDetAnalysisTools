@@ -1,3 +1,22 @@
+function exists(fn::AbstractString, dataset = "")::Bool
+	hf = h5open(fn)
+	res=haskey(hf, dataset)
+	close(hf)
+	res
+end
+function exists(hf::Union{HDF5.File,HDF5.Group}, dataset = "")::Bool
+	haskey(hf, dataset)
+end
+function exists(m::Measurement, dataset = "")::Bool
+	filenames = gather_absolute_paths_to_hdf5_input_files(m)
+	for fn in filenames
+		if !(exists(fn, dataset))
+			return false
+		end
+	end
+	return true
+end
+
 function view_file_structure(fn::AbstractString)::Nothing
 	run(Cmd(`h5ls -r "$fn"`))
 	nothing
@@ -64,16 +83,16 @@ function get_eltype_of_dataset(m::Measurement, gn::AbstractString, dn::AbstractS
 	return get_eltype_of_dataset( gather_absolute_paths_to_hdf5_input_files(m)[1], gn, dn)
 end
 
-import HDF5.exists
-function exists(fn::AbstractString, path::AbstractString)::Bool
-	h = h5open(fn, "r")
-	r = exists(h, path)
-	close(h)
-	return r
-end
-function exists(m::Measurement, path::AbstractString)::Bool
-	exists(gather_absolute_paths_to_hdf5_input_files(m)[1], path)
-end
+# import HDF5.exists
+# function exists(fn::AbstractString, path::AbstractString)::Bool
+# 	h = h5open(fn, "r")
+# 	r = exists(h, path)
+# 	close(h)
+# 	return r
+# end
+# function exists(m::Measurement, path::AbstractString)::Bool
+# 	exists(gather_absolute_paths_to_hdf5_input_files(m)[1], path)
+# end
 
 function is_new_pulse_format(fn::AbstractString)::Bool
 	new_pulse_format = false

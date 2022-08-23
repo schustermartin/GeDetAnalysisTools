@@ -148,7 +148,7 @@ function determine_superpulse_w_alignment(m::Measurement, channels::Vector{Int},
 						if (elimit_max >= energies[channels[ichn], ievt] >= elimit_min) && (d_daq_ssi[ievt][1] == UInt8(channels[ichn]))
 							tdc_pulses = baseline_substraction_and_decay_correction(Float32.(chunk_pulses[:, :, i]), bl, bl_inv, decay_factors);
 							corr_pulse =calibrate_pulses(tdc_pulses, c)
-							idx = try find_mid_point_idx_fast(smooth20_3(corr_pulse[:,1]), mean(corr_pulse[2750:end,1]))
+							idx = try find_mid_point_idx_fast(smooth20_3(corr_pulse[:,1]), mean(corr_pulse[end-m.daq.decay_window_length+1:end,1]))
 							catch err
 								@warn "strange"
 								0

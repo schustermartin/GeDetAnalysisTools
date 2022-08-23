@@ -56,16 +56,20 @@ function determine_baseline_information(filenames::Vector{String}, m::Measuremen
             g_daq = g_open(h5f, "DAQ_Data")
             d_daq_pulses = d_open(g_daq, "daq_pulses")
             daq_pulse_T = eltype(d_daq_pulses)
-            chunksize_daq = get_chunk(d_daq_pulses)
+            chunksize_daq = HDF5.get_chunk(d_daq_pulses)
             n_samples, n_channel, n_events = new_pulse_format ? size(d_daq_pulses) : (size(d_daq_pulses, 2), size(d_daq_pulses, 1), size(d_daq_pulses, 3))
             chunksize = n_channel, chunksize_daq[3]
+            #@info chunksize 
             g_pd = exists(h5f, "Processed_data") ? g_open(h5f, "Processed_data") : g_create(h5f, "Processed_data")
             if exists(g_pd, "baseline_offset") o_delete(g_pd, "baseline_offset") end
             if exists(g_pd, "baseline_slope") o_delete(g_pd, "baseline_slope") end
             if exists(g_pd, "baseline_rms") o_delete(g_pd, "baseline_rms") end
-            d_baseline_offset = d_create(g_pd, "baseline_offset", Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
-            d_baseline_slope  = d_create(g_pd, "baseline_slope",  Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
-            d_baseline_rms    = d_create(g_pd, "baseline_rms",    Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
+            #d_baseline_offset = d_create(g_pd, "baseline_offset", Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
+            #d_baseline_slope  = d_create(g_pd, "baseline_slope",  Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
+            #d_baseline_rms    = d_create(g_pd, "baseline_rms",    Float32, ((n_channel, n_events),(n_channel, n_events)), "chunk", chunksize)
+            d_baseline_offset = d_create(g_pd, "baseline_offset", Float32, ((n_channel, n_events),(n_channel, n_events)), chunk = chunksize)
+            d_baseline_slope  = d_create(g_pd, "baseline_slope",  Float32, ((n_channel, n_events),(n_channel, n_events)), chunk = chunksize)
+            d_baseline_rms    = d_create(g_pd, "baseline_rms",    Float32, ((n_channel, n_events),(n_channel, n_events)), chunk = chunksize)
 
             # n_events = 2000 # debugging
 
@@ -112,6 +116,12 @@ function unflag_events(m)
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     for (fi, f) in enumerate(inputfiles)
         h5f = h5open(f, "r+")
+        g_daq = g_open(h5f, "DAQ_Data")
+        d_daq_pulses = d_open(g_daq, "daq_pulses")
+        new_pulse_format = is_new_pulse_format(f)
+        n_samples, n_channel, n_events = new_pulse_format ? size(d_daq_pulses) : (size(d_daq_pulses, 2), size(d_daq_pulses, 1), size(d_daq_pulses, 3))
+        chunk_n_events = HDF5.get_chunk(d_daq_pulses)[3]
+        !haskey(h5open(f), "Processed_data") ? error("baselineinformation missing for $f") : nothing
         try
             g_pd  = g_open(h5f, "Processed_data")
             d_pile_up_flag = if exists(g_pd, "event_flags")
@@ -131,7 +141,7 @@ function unflag_events(m)
     return nothing
 end
 
-function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
+function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1.)
     inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
     n_pile_up_events::Int = 0
     n_total_events::Int = get_number_of_events(m)
@@ -142,10 +152,13 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
             g_pd  = g_open(h5f, "Processed_data")
             d_slopes = d_open(g_pd, "baseline_slope")
             T::DataType = eltype(d_slopes)
-            σ::T = stdm(d_slopes[channel,:][1,:],0.0)
-            d::T = T(n_sigma * σ)
+            slopes::Vector{T} = read(d_slopes)[channel, :]
+            σ_est::T = stdm(slopes,0.0)
+            h = fit(Histogram, slopes, -12*σ_est:σ_est/100:12*σ_est)
+            σ::T = RadiationSpectra_beforeBAT.fit_single_peak_histogram_w_gaussian_refined(h).fitted_parameters[2]
+            d::T = T(abs(n_sigma * σ))
             n_channel::Int, n_events::Int = size(d_slopes)
-            chunk_n_events::Int = get_chunk(d_slopes)[end]
+            chunk_n_events::Int = HDF5.get_chunk(d_slopes)[end]
             d_pile_up_flag_exists::Bool = exists(g_pd, "event_flags")
             d_pile_up_flag = if d_pile_up_flag_exists
                 d_open(g_pd, "event_flags")
@@ -154,7 +167,7 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
             end
             if !d_pile_up_flag_exists d_pile_up_flag[:] .= UInt8(0) end
 
-            slopes::Vector{T} = read(d_slopes)[channel, :]
+            # slopes::Vector{T} = read(d_slopes)[channel, :]
             pile_up_flags::Vector{UInt8} = d_pile_up_flag[:]
 
             @inbounds for i in 1:n_events
@@ -176,7 +189,7 @@ function flag_pileup_events(m, channel::Int = 1, n_sigma::Real = 1)
         end
     end
 
-    @info "$(m.name) - $n_pile_up_events pile up events ($(round(100 * n_pile_up_events / n_total_events, digits = 3)) %)"
+    @info "$(m.name) - $n_pile_up_events falling baseline events ($(round(100 * n_pile_up_events / n_total_events, digits = 3)) %)"
     return nothing
 end
 function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
@@ -190,10 +203,15 @@ function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
             g_pd  = g_open(h5f, "Processed_data")
             d_slopes = d_open(g_pd, "baseline_slope")
             T::DataType = eltype(d_slopes)
-            σ::T = stdm(d_slopes[channel,:][1,:],0.0)
-            d::T = T(n_sigma * σ)
+            #σ::T = stdm(d_slopes[channel,:][1,:],0.0)
+            #d::T = T(n_sigma * σ)
+            slopes::Vector{T} = read(d_slopes)[channel, :]
+            σ_est::T = stdm(slopes,0.0)
+            h = fit(Histogram, slopes, -12*σ_est:σ_est/100:12*σ_est)
+            σ::T = RadiationSpectra_beforeBAT.fit_single_peak_histogram_w_gaussian_refined(h).fitted_parameters[2]
+            d::T = T(abs(n_sigma * σ))
             n_channel::Int, n_events::Int = size(d_slopes)
-            chunk_n_events::Int = get_chunk(d_slopes)[end]
+            chunk_n_events::Int = HDF5.get_chunk(d_slopes)[end]
             d_pile_up_flag_exists::Bool = exists(g_pd, "event_flags")
             d_pile_up_flag = if d_pile_up_flag_exists
                 d_open(g_pd, "event_flags")
@@ -202,7 +220,7 @@ function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
             end
             if !d_pile_up_flag_exists d_pile_up_flag[:] .= UInt8(0) end
 
-            slopes::Vector{T} = read(d_slopes)[channel, :]
+            #slopes::Vector{T} = read(d_slopes)[channel, :]
             pile_up_flags::Vector{UInt8} = d_pile_up_flag[:]
 
             @inbounds for i in 1:n_events
@@ -223,7 +241,60 @@ function flag_rising_baseline_events(m, channel::Int = 1, n_sigma::Real = 1)
         end
     end
 
-    @info "$(m.name) - $n_pile_up_events pile up events ($(round(100 * n_pile_up_events / n_total_events, digits = 3)) %)"
+    @info "$(m.name) - $n_pile_up_events rising baseline events ($(round(100 * n_pile_up_events / n_total_events, digits = 3)) %)"
+    return nothing
+end
+
+function flag_mean_baseline_cut_events(m, channel::Int = 1, n_sigma::Real = 1)
+    inputfiles = gather_absolute_paths_to_hdf5_input_files(m)
+    n_mean_baseline_cut_events::Int = 0
+    n_total_events::Int = get_number_of_events(m)
+    for (fi, f) in enumerate(inputfiles)
+        !exists(f, "Processed_data/baseline_slope") ? determine_baseline_information(m) : nothing
+        h5f = h5open(f, "r+")
+        try
+            g_pd  = g_open(h5f, "Processed_data")
+            d_bl_means = d_open(g_pd, "baseline_offset")
+            T::DataType = eltype(d_bl_means)
+            bl_means::Vector{T} = read(d_bl_means)[channel, :]
+            σ_est::T = std(bl_means)
+            h = fit(Histogram, bl_means, mean(bl_means)-12*σ_est:σ_est/100: mean(bl_means)+12*σ_est)
+            fit_result =  RadiationSpectra_beforeBAT.fit_single_peak_histogram_w_gaussian_refined(h).fitted_parameters
+            σ::T = fit_result[2]
+            d::T = T(abs(n_sigma * σ))
+            n_channel::Int, n_events::Int = size(d_bl_means)
+            chunk_n_events::Int = HDF5.get_chunk(d_bl_means)[end]
+            d_mean_baseline_cut_flag_exists::Bool = exists(g_pd, "event_flags")
+            d_mean_baseline_cut_flag = if d_mean_baseline_cut_flag_exists
+                d_open(g_pd, "event_flags")
+            else
+                d_create(g_pd, "event_flags", UInt8, ((n_events,),(n_events,)), "chunk", (chunk_n_events,) )
+            end
+            if !d_mean_baseline_cut_flag_exists d_mean_baseline_cut_flag[:] .= UInt8(0) end
+
+            # slopes::Vector{T} = read(d_slopes)[channel, :]
+            mean_baseline_cut_flags::Vector{UInt8} = d_mean_baseline_cut_flag[:]
+
+            @inbounds for i in 1:n_events
+                if (bl_means[i] < fit_result[3] - d || bl_means[i] > fit_result[3] + d)
+                    if mean_baseline_cut_flags[i] & MeanBaselineCut == 0
+                        mean_baseline_cut_flags[i] += MeanBaselineCut::UInt8 #  = UInt8(1)
+                    end
+                end
+            end
+            d_mean_baseline_cut_flag[:] = mean_baseline_cut_flags
+
+            n_mean_baseline_cut_events += length(findall(x -> (x & MeanBaselineCut) == MeanBaselineCut, mean_baseline_cut_flags))
+
+            close(h5f)
+        catch err
+            println(err)
+            close(h5f)
+            error(err)
+        end
+    end
+
+    @info "$(m.name) - $n_mean_baseline_cut_events mean baseline cut events ($(round(100 * n_mean_baseline_cut_events / n_total_events, digits = 3)) %)"
     return nothing
 end
 
@@ -257,39 +328,51 @@ function baseline_quality_plots(m::Measurement; n_sigma::Real = 1.0)
             last_event_idx += n_events_in_file
         end
     end
-
     for ichn in 1:n_channel
         begin # baseline offset
-            bl_μ::T, bl_σ::T = mean_and_std(baseline_offsets[:, ichn])
-            h_offsets = Histogram(0.0:1:2^14)
-            append!(h_offsets,  baseline_offsets[:, ichn])
-            # h_offsets = fit(Histogram, baseline_offsets[:, ichn], bl_μ-10bl_σ:bl_σ/100:bl_μ+10bl_σ, closed=:left)
-            p_h_bl_offsets = plot(h_offsets, st=:step, yscale = :log10, label = "", xlabel = "Baseline mean / ADC counts", ylabel = "#Events")
-            vline!([bl_μ - n_sigma * bl_σ, bl_μ + n_sigma * bl_σ], lw=2.0, label = "Mean ± $(n_sigma)σ", lc = :red)
-        end
+            μ_est::T, σ_est::T = mean_and_std(baseline_offsets[:, ichn])
 
+            h_offsets = fit(Histogram, baseline_offsets[:, ichn], mean(baseline_offsets[:, ichn]) -10*sqrt(σ_est):1.0: mean(baseline_offsets[:, ichn])+10*sqrt(σ_est))
+            gauss_fit = RadiationSpectra_beforeBAT.fit_single_peak_histogram_w_gaussian_refined(h_offsets)
+            fit_result =  gauss_fit.fitted_parameters
+            bl_σ::T = fit_result[2]
+            bl_μ::T = fit_result[3]
+            d::T = T(abs(n_sigma * bl_σ))
+            p_h_bl_offsets = plot(h_offsets, st=:step, label = "", xlabel = "Baseline mean / ADC counts", ylabel = "#Events")
+            plot!(gauss_fit, lc = :green, lw = 2, label = "Gaussian fit to the data")
+            vline!([bl_μ - d, bl_μ + d], lw=2.0, label = "Mean ± $(n_sigma) σ: $(round(bl_μ, digits = 3)) ± $(round(d, digits = 3))", lc = :red)
+
+            # h_offsets = fit(Histogram, baseline_offsets[:, ichn], bl_μ-2000:1.0:bl_μ+2000)
+            # # h_offsets = fit(Histogram, baseline_offsets[:, ichn], bl_μ-10bl_σ:bl_σ/100:bl_μ+10bl_σ, closed=:left)
+            # p_h_bl_offsets = plot(h_offsets, st=:step, yscale = :log10, label = "", xlabel = "Baseline mean / ADC counts", ylabel = "#Events")
+            # vline!([bl_μ - n_sigma * bl_σ, bl_μ + n_sigma * bl_σ], lw=2.0, label = "Mean ± $(n_sigma) σ: $bl_μ ± $(round(n_sigma * bl_σ, digits = 3))", lc = :red)
+        end
         begin # baseline rms
             bl_rms_μ::T, bl_rms_σ::T = mean_and_std(baseline_rms[:, ichn])
             h_bl_rms = fit(Histogram, baseline_rms[:, ichn], 0:bl_rms_σ/500:bl_rms_μ + 2bl_rms_σ)
             p_h_bl_rms = plot(h_bl_rms, st=:step, yscale = :log10, xlabel = "Basline RMS / ADC counts", ylabel = "#Events", label = "")
-            vline!([bl_rms_μ], label = "Mean", lw = 2.0, lc = :red)
-            xlims!(0, bl_rms_μ + 1bl_rms_σ)
+            vline!([bl_rms_μ], label = "Mean: $(round(bl_rms_μ, digits = 3))", lw = 2.0, lc = :red)
+            xlims!(0, bl_rms_μ + 3*bl_rms_σ)
         end
-
         begin # baseline slope
             bl_slope_μ::T, bl_slope_σ::T = mean_and_std(baseline_slopes[:, ichn])
             h_bl_slopes = fit(Histogram, baseline_slopes[:, ichn], -25bl_slope_σ:bl_slope_σ/100:25bl_slope_σ)
-            p_h_bl_slopes = plot(h_bl_slopes, st=:step, yscale = :log10, xlabel = "Basline slopes / (ADC counts / sample)", ylabel = "#Events", label = "")
-            vline!([bl_slope_μ - n_sigma * bl_slope_σ, bl_slope_μ + n_sigma * bl_slope_σ], label = "Mean ± $(n_sigma)σ", lw = 2.0, lc = :red)
-        end
+            gauss_fit = RadiationSpectra_beforeBAT.fit_single_peak_histogram_w_gaussian_refined(h_bl_slopes)
+            fit_result =  gauss_fit.fitted_parameters
+            bl_slope_μ, bl_slope_σ = gauss_fit.fitted_parameters[3], gauss_fit.fitted_parameters[2]
+            p_h_bl_slopes = plot(h_bl_slopes, st=:step, xlabel = "Basline slopes / (ADC counts / sample)", ylabel = "#Events", label = "")
+            plot!(gauss_fit)
+            vline!([bl_slope_μ - n_sigma * bl_slope_σ, bl_slope_μ + n_sigma * bl_slope_σ], label = "Mean ± $(n_sigma) σ: $(round(bl_slope_μ, sigdigits = 3)) ± $(round(n_sigma * bl_slope_σ, sigdigits = 3))", lw = 2.0, lc = :red)
 
+            # p_h_bl_slopes = plot(h_bl_slopes, st=:step, yscale = :log10, xlabel = "Basline slopes / (ADC counts / sample)", ylabel = "#Events", label = "")
+            # vline!([bl_slope_μ - n_sigma * bl_slope_σ, bl_slope_μ + n_sigma * bl_slope_σ], label = "Mean ± $(n_sigma) σ: $(round(bl_slope_μ, sigdigits = 3)) ± $(round(n_sigma * bl_slope_σ, sigdigits = 3))", lw = 2.0, lc = :red)
+        end
         p_summary = plot(
             p_h_bl_offsets, p_h_bl_rms, p_h_bl_slopes,
             layout = (@layout [a b c]), size = (1600, 500),
             title = "Channel $ichn",
             legendfontsize = 14, guidefontsize = 14, tickfontsize = 12, titlefontsize = 14
         )
-
         savefig(m, p_summary, "0_1_baseline_quality", "0_1_baseline_quality_chn$ichn", fmt=:png )
     end
     nothing

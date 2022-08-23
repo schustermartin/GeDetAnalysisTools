@@ -80,12 +80,12 @@ print(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
 show(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
 display(io::IO, dataset::Array{Measurement, 1}) = println(io, dataset)
 
-function Measurement(path::AbstractString)::Measurement
+function Measurement(path::AbstractString; subdir = missing)::Measurement
 	m::Measurement = Measurement()
 	m.data_set_name = dirname(path)
 	m.new_data_structure = true
-	m.path_to_raw_data  = joinpath(path, "raw_data")
-	m.path_to_conv_data = joinpath(path, "conv_data")
+	m.path_to_raw_data  = joinpath(path, "raw_data", !(ismissing(subdir)) ? subdir : "")
+	m.path_to_conv_data = joinpath(path, "conv_data", !(ismissing(subdir)) ? subdir : "")
 	m.results_path = joinpath(path, "results")
 	compressed_data_files = filter(fn -> endswith(fn, "dat.bz2") || endswith(fn, "filtered.h5"), readdir(m.path_to_raw_data))
 	m.name = get_measurement_name_from_compressed_data_file_name(compressed_data_files[1])
@@ -105,12 +105,12 @@ function Measurement(path::AbstractString)::Measurement
 	return m
 end
 
-function Measurement_single_file(path::AbstractString)::Measurement
+function Measurement_single_file(path::AbstractString; subdir = missing)::Measurement
 	m::Measurement = Measurement()
 	m.data_set_name = dirname(path)
 	m.new_data_structure = true
-	m.path_to_raw_data  = joinpath(path, "raw_data")
-	m.path_to_conv_data = joinpath(path, "conv_data")
+	m.path_to_raw_data  = joinpath(path, "raw_data", !(ismissing(subdir)) ? subdir : "")
+	m.path_to_conv_data = joinpath(path, "conv_data", !(ismissing(subdir)) ? subdir : "")
 	m.results_path = joinpath(path, "results")
 	# compressed_data_files = filter(fn -> endswith(fn, "dat.bz2"), readdir(m.path_to_raw_data))
 	# m.name = get_measurement_name_from_compressed_data_file_name(compressed_data_files[1])
@@ -156,22 +156,32 @@ function get_measurement_name_from_compressed_data_file_name(filename::AbstractS
 end
 
 function get_datetime_from_measurement_name(m::Measurement; new_data_structure=true)::DateTime
-	files = filter(x -> startswith(x, m.name), readdir(m.path_to_raw_data))
-	filter!(x -> endswith(x, ".dat") || endswith(x, ".bz2") || endswith(x, "-filtered.h5"), files)
+	# files = filter(x -> startswith(x, m.name), readdir(m.path_to_raw_data))
+	# filter!(x -> endswith(x, ".dat") || endswith(x, ".bz2") || endswith(x, "-filtered.h5"), files)
+	files = filter(x -> startswith(x, m.name), readdir(m.path_to_conv_data))
+	filter!(x -> endswith(x, ".hdf5") || endswith(x, ".h5"), files)
 	dt = if new_data_structure == true
 		df = DateFormat("yyyymmddTHHMMSSZ")
-		dts = match(r"-\d{8}T\d{6}.*", files[1]).match
-		dts = dts[2:end-4]
-		if endswith(dts, ".dat")
-			dts = dts[1:end-4]
-		end
-		if endswith(dts, "-raw")
-			dts = dts[1:end-4]
-		end
-		if endswith(dts, "-filtered.h5")
-			dts = dts[1:end-12]
-		end
-		DateTime(dts, df)
+		dts = match(r"-\d{8}T\d{6}Z", files[1]).match
+		# dts = match(r"-\d{8}T\d{6}.*", files[1]).match
+		# dts = dts[2:end-4]
+		# if endswith(dts, ".dat")
+		# 	dts = dts[1:end-4]
+		# end
+		# if endswith(dts, "-raw")
+		# 	dts = dts[1:end-4]
+		# end
+		# if endswith(dts, "-filtered.h5")
+		# 	dts = dts[1:end-12]
+		# end
+		# if endswith(dts, ".h5")
+		# 	dts = dts[1:end-3]
+		# end
+		# if endswith(dts, ".hdf5")
+		# 	dts = dts[1:end-5]
+		# end
+		# DateTime(dts, df)
+		DateTime(dts[2:end-1], df)
 	else
 		df = DateFormat("yyyymmdd")
 		ds = files[1][1:8]
@@ -252,7 +262,8 @@ end
 function get_measurement_duration_from_measurement_names(m::Measurement; new_data_structure=true)
 	measurement_duration = 0 # in sec
 	if new_data_structure == true
-		files = filter(x -> startswith(x, m.name), readdir(joinpath(m.path_to_raw_data, "../conv_data" ) ))
+		#files = filter(x -> startswith(x, m.name), readdir(joinpath(m.path_to_raw_data, "../conv_data" ) ))
+		files = filter(x -> startswith(x, m.name) && (endswith(x, ".hdf5") || endswith(x, ".h5") || endswith(x, ".lh5") ), readdir(m.path_to_conv_data ) )
 		reg1 = r"measuretime_[0-9]*sec"
 		reg2 = r"t_[0-9]*sec"
 		for file in files
@@ -320,7 +331,7 @@ function get_outside_source_from_measurement_name(m::Measurement)
 	return os
 end
 
-function Measurement(data_set_name::AbstractString, name::AbstractString; new_data_structure=true) #Give any(or the single one, if there is only one) complete filename of that measurement as 'name' argument.
+function Measurement(data_set_name::AbstractString, name::AbstractString; new_data_structure=true, subdir = missing) #Give any(or the single one, if there is only one) complete filename of that measurement as 'name' argument.
 	m = Measurement()
 	# m.name = name
 	# new_data_structure ? m.name = name[1:match(r"-\d{8}T\d{6}Z.*", name).offset-1] : m.name = name
@@ -328,11 +339,11 @@ function Measurement(data_set_name::AbstractString, name::AbstractString; new_da
 	m.data_set_name = data_set_name
 	m.new_data_structure = new_data_structure
 	if m.new_data_structure == true
-		m.path_to_raw_data  = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data" )
-		m.path_to_conv_data = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "conv_data" )
+		m.path_to_raw_data  = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data", !(ismissing(subdir)) ? subdir : "")
+		m.path_to_conv_data = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "conv_data", !(ismissing(subdir)) ? subdir : "")
 	else
-		m.path_to_raw_data  = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data",  m.name )
-		m.path_to_conv_data = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "conv_data", m.name )
+		m.path_to_raw_data  = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data", !(ismissing(subdir)) ? subdir : "",  m.name )
+		m.path_to_conv_data = joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "conv_data", !(ismissing(subdir)) ? subdir : "", m.name )
 	end
 	m.results_path = results_path(m)
 	m.datetime = get_datetime_from_measurement_name(m, new_data_structure=new_data_structure)
@@ -350,9 +361,9 @@ end
 
 ######### Creating Data Sets ################################
 
-function scan_conv_data_folder_for_measurements(data_set_name::AbstractString; new_data_structure=true)
+function scan_conv_data_folder_for_measurements(data_set_name::AbstractString; new_data_structure=true, subdir=missing)
 	if new_data_structure==true
-		files = readdir(joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "conv_data") )
+		files = readdir(joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "conv_data", !(ismissing(subdir)) ? subdir : "") )
 		files = filter( x -> endswith(x,".hdf5") , files)
 		list_of_measurements = get_measurement_name_from_compressed_data_file_name.(files)
 		list_of_measurements = union(list_of_measurements)
@@ -360,12 +371,12 @@ function scan_conv_data_folder_for_measurements(data_set_name::AbstractString; n
 		@info "not yet implemented"
 	end
 end
-function data_set_from_conv_data(data_set_name::AbstractString; new_data_structure=true)
+function data_set_from_conv_data(data_set_name::AbstractString; new_data_structure=true, subdir=missing)
 	data_set = Measurement[]
 	if new_data_structure == true
-		list_of_measurements = scan_conv_data_folder_for_measurements(data_set_name, new_data_structure=new_data_structure)
+		list_of_measurements = scan_conv_data_folder_for_measurements(data_set_name, new_data_structure=new_data_structure, subdir=subdir)
 		for mn in list_of_measurements
-			m = Measurement(data_set_name, mn)
+			m = Measurement(data_set_name, mn, subdir = subdir)
 			# println(in(m, data_set))
 			push!(data_set, m)
 		end
@@ -384,13 +395,13 @@ function scan_raw_data_folder_for_measurements(data_set_name::AbstractString; ne
 		@info "not yet implemented"
 	end
 end
-function data_set_from_raw_data(data_set_name::AbstractString; new_data_structure=true)
+function data_set_from_raw_data(data_set_name::AbstractString; new_data_structure=true, subdir = missing)
 	data_set = Measurement[]
 	if new_data_structure==true
-		list_of_measurements = scan_raw_data_folder_for_measurements(data_set_name, new_data_structure=new_data_structure)
+		list_of_measurements = scan_raw_data_folder_for_measurements(data_set_name, new_data_structure=new_data_structure, subdir = subdir )
 		for m in list_of_measurements
 			println(m)
-			push!(data_set, Measurement(data_set_name, m))
+			push!(data_set, Measurement(data_set_name, m, subdir= subdir))
 		end
 		return data_set
 	else
@@ -399,7 +410,7 @@ function data_set_from_raw_data(data_set_name::AbstractString; new_data_structur
 	end
 end
 
-function scan_data_set_for_measurement_names(data_set_name::AbstractString; new_data_structure=true)
+function scan_data_set_for_measurement_names(data_set_name::AbstractString; new_data_structure=true, subdir=missing)
 	list_of_measurements = String[]
 	if new_data_structure==true
 		files = readdir(joinpath(USER_DATA_PATH, data_set_name[1:4], data_set_name, "raw_data") )
@@ -413,15 +424,15 @@ function scan_data_set_for_measurement_names(data_set_name::AbstractString; new_
 	return list_of_measurements
 end
 
-function Data_set(data_set_name::AbstractString; new_data_structure=true)
+function Data_set(data_set_name::AbstractString; new_data_structure=true, subdir=missing)
 	data_set = Measurement[]
 	if new_data_structure==true
-		list_of_measurements = scan_conv_data_folder_for_measurements(data_set_name)
+		list_of_measurements = scan_conv_data_folder_for_measurements(data_set_name, subdir=subdir)
 		for m in list_of_measurements
 			push!(data_set, Measurement(data_set_name, m))
 		end
 	else
-		list_of_measurements = scan_data_set_for_measurement_names(data_set_name, new_data_structure=new_data_structure)
+		list_of_measurements = scan_data_set_for_measurement_names(data_set_name, new_data_structure=new_data_structure, subdir=subdir)
 		for m in list_of_measurements
 			push!(data_set, Measurement(data_set_name, m, new_data_structure=new_data_structure))
 		end
@@ -475,6 +486,7 @@ function gather_absolute_paths_to_hdf5_input_files(m::Measurement)
 	end
 	return input_files
 end
+const gap = gather_absolute_paths_to_hdf5_input_files
 
 function get_path_to_data_summary_file(m::Measurement)
 	cal_data_path = joinpath(USER_DATA_PATH, "$(Dates.year(m.date))", m.data_set_name, "cal_data")

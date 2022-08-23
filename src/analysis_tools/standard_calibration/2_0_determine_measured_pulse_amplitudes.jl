@@ -16,7 +16,7 @@ function determine_measured_pulse_amplitudes(m::Measurement, tau_decay_constants
         try
             g_daq = g_open(h5f, "DAQ_Data")
             d_daq_pulses = d_open(g_daq, "daq_pulses")
-            chunksize_daq = get_chunk(d_daq_pulses)
+            chunksize_daq = HDF5.get_chunk(d_daq_pulses)
             n_samples, n_channel, n_events = new_pulse_format ? size(d_daq_pulses) : (size(d_daq_pulses, 2), size(d_daq_pulses, 1), size(d_daq_pulses, 3))
             chunksize = n_channel, chunksize_daq[3]
             g_pd = exists(h5f, "Processed_data") ? g_open(h5f, "Processed_data") : g_create(h5f, "Processed_data")

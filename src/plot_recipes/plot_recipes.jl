@@ -8,8 +8,8 @@
 	size --> (900, 500)
 	legend --> false
 	units = "keV"
-	xlabel --> "E / $units"
-	ylabel --> "Counts"
+	xguide --> "E / $units"
+	yguide --> "Counts"
 	# title --> "Energy Histogram"
 	seriestype --> :step
 
@@ -41,8 +41,8 @@ end
 		println(n_channel)
 		size --> (1920, 1080)
 		# legend --> false
-		xlabel --> "E / keV"
-		ylabel --> "Counts"
+		xguide --> "E / keV"
+		yguide --> "Counts"
 		seriestype := :step
 
 		det_arg_idx = findfirst( GAT.Detector .== typeof.(gdd.args))
@@ -85,18 +85,20 @@ end
 		n_channel = minimum(size(e))
 
 		size --> (1920, 1080)
-		# legend --> false
-		xlabel --> "E / keV"
-		ylabel --> "Counts"
+		legend --> false
+		xguide --> "E / keV"
+		yguide --> "Counts"
 		seriestype := :step
-
+		#
 		det_arg_idx = findfirst( GAT.Detector .== typeof.(gdd.args))
 		detector = !isnothing(det_arg_idx) ? gdd.args[det_arg_idx] : m.detector
 		channel_order = !ismissing(detector) ? detector.channel_display_order : Int[chn for chn in 1:n_channel]
+		@info("$channel_order")
 		try layout --> detector.channel_plot_layout() catch err layout --> (n_channel) end
-
+		@info(detector)
+		# layout := grid(3,2)
 		y_max = 1
-
+# channel_order = m.detector.channel_display_order
 		for ichn in 1:n_channel
 			if typeof(e) <: Array{<:Real, 2}
 				@series begin
@@ -149,8 +151,8 @@ end
 
 	legend --> false
 	size --> (1920, 1080)
-	xlabel --> "E / keV"
-	ylabel --> "Counts"
+	xguide --> "E / keV"
+	yguide --> "Counts"
 	if !(eltype(e) <: Histogram{<:Real, 2})
 		seriestype --> :step
 	end
@@ -158,20 +160,20 @@ end
 	m_arg_idx = findfirst( GAT.Measurement .== typeof.(gdd.args))
 	m = !isnothing(m_arg_idx) ? gdd.args[m_arg_idx] : missing
 	det_arg_idx = findfirst( GAT.Detector .== typeof.(gdd.args))
-	detector = if !isnothing(det_arg_idx) 
+	detector = if !isnothing(det_arg_idx)
 		gdd.args[det_arg_idx]
 	elseif !ismissing(m)
 		m.detector
 	else
-		missing		
+		missing
 	end
 	channel_order = !ismissing(detector) ? detector.channel_display_order : Int[chn for chn in 1:n_channel]
-	try 
-		layout --> detector.channel_plot_layout() 
-	catch err 
-		layout --> (n_channel) 
+	try
+		layout --> detector.channel_plot_layout()
+	catch err
+		layout --> (n_channel)
 	end
-	
+
 
 	if !ismissing(detector) && detector.info_plot_index > 0
 		@series begin

@@ -11,7 +11,7 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
     ismissing(inputfiles) ? inputfiles = gather_absolute_paths_to_hdf5_input_files(m) : nothing
     core::Int = 1
 
-    precal_energies::Array{Float32, 1} = c_precal .* get_measured_pulse_amplitudes(m)[1, :]
+    precal_energies::Array{Float32, 1} = c_precal .* get_measured_pulse_amplitudes(m)[1, get_event_indices(GAT.get_event_flags(m), :healthy) ]
     n_events = length(precal_energies)
 
     T = Float64
@@ -19,7 +19,7 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
     c::T = 1.0
     h0 = fit(Histogram, precal_energies, edges, closed=:left)
 
-    peak_fits = RadiationSpectra.FitFunction[ RadiationSpectra.FitFunction{T}( RadiationSpectra.Gauss_plus_linear_background, 1, 5 ) for ichn in 1:length(photon_lines) ]
+    peak_fits = RadiationSpectra_beforeBAT.FitFunction[ RadiationSpectra_beforeBAT.FitFunction{T}( RadiationSpectra_beforeBAT.Gauss_plus_linear_background, 1, 5 ) for ichn in 1:length(photon_lines) ]
     # peak_fits = GeDetSpectrumAnalyserTmp.Fit[]
     for (i, pl) in enumerate(photon_lines)
         line::T = pl
@@ -39,16 +39,16 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
         p0_bg_slope = (h0.weights[last_bin] - h0.weights[first_bin]) / (fitrange[2] - fitrange[1])
         p0 = T[ p0_scale, p0_sigma, p0_mean, p0_bg_offset, p0_bg_slope ]
         set_initial_parameters!(peak_fits[i], p0)
-        RadiationSpectra.lsqfit!(peak_fits[i], h0)
+        RadiationSpectra_beforeBAT.lsqfit!(peak_fits[i], h0)
     end
 
     fitted_peak_positions = [ fr.fitted_parameters[3] for fr in peak_fits ] ./ c_precal
     # fitted_peak_positions_err = [ fr.uncertainties[3] for fr in peak_fits ] ./ c_precal
 
-    c_fit = RadiationSpectra.FitFunction{T}( linear_function_fixed_offset_at_zero, 1, 1)
+    c_fit = RadiationSpectra_beforeBAT.FitFunction{T}( linear_function_fixed_offset_at_zero, 1, 1)
     set_initial_parameters!(c_fit, [c_precal])
     set_fitranges!(c_fit, ((minimum(photon_lines), maximum(photon_lines)),))
-    RadiationSpectra.lsqfit!( c_fit, photon_lines, fitted_peak_positions) #, fitted_peak_positions_err )
+    RadiationSpectra_beforeBAT.lsqfit!( c_fit, photon_lines, fitted_peak_positions) #, fitted_peak_positions_err )
     c = inv(c_fit.fitted_parameters[1])
 
     if create_plots
@@ -60,8 +60,8 @@ function determine_core_calibration_factor_with_mpas(m::Measurement, c_precal::R
             last_bin  = StatsBase.binindex(h0, last(fitrange))
             pfp = plot( h0.edges[1][first_bin]:step(h0.edges[1]):h0.edges[1][last_bin], h0.weights[first_bin:last_bin], st=:step, label="Data (precalibrated)")
             bw = StatsBase.binvolume(h0, 1)
-            plot!(peak_fits[ipl], label="LSQ Fit", bin_width = bw)
-            plot!(peak_fits[ipl], label="LSQ Fit - Init", use_initial_parameters = true, bin_width = bw)
+            plot!(peak_fits[ipl], label="LSQ Fit")#, bin_width = bw)
+            plot!(peak_fits[ipl], label="LSQ Fit - Init", use_initial_parameters = true)#, bin_width = bw)
             plot!([pl], st=:vline, color=:green, label="Photon line")
             push!(peak_fit_plots, pfp)
         end

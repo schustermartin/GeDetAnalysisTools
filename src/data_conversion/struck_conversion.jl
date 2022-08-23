@@ -160,15 +160,15 @@ function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samp
     chunk_size_others = 5000
 
     g_daq = g_create(output_hdf5_file, "DAQ_Data")
-    d_event_number  = d_create(g_daq, "event_number", Int32, ((start_n_events,),(n_max_events,)), "chunk", (chunk_size_others,))
-    d_daq_time      = d_create(g_daq, "daq_time",   Float64, ((1, start_n_events,),(1, n_max_events,)), "chunk", (1, chunk_size_others,))
-    d_daq_energy    = d_create(g_daq, "daq_energies", waveform_type, ((daq_n_channels,start_n_events),(daq_n_channels,n_max_events)), "chunk", (daq_n_channels,chunk_size_others))
+    d_event_number  = d_create(g_daq, "event_number", Int32, ((start_n_events,),(n_max_events,)), chunk=(chunk_size_others,))
+    d_daq_time      = d_create(g_daq, "daq_time",   Float64, ((1, start_n_events,),(1, n_max_events,)), chunk=(1, chunk_size_others,))
+    d_daq_energy    = d_create(g_daq, "daq_energies", waveform_type, ((daq_n_channels,start_n_events),(daq_n_channels,n_max_events)), chunk=(daq_n_channels,chunk_size_others))
     if waveform_format == :integers
         if compress
             d_daq_pulses = d_create(g_daq, "daq_pulses", Float32, ((daq_n_samples,daq_n_channels,start_n_events),(daq_n_samples,daq_n_channels,n_max_events)),
-                                            "chunk", (daq_n_samples,daq_n_channels,chunk_size_pulses), "shuffle", (), "deflate", 3  )
+                                            chunk=(daq_n_samples,daq_n_channels,chunk_size_pulses), shuffle=(), deflate=3  )
         else
-            d_daq_pulses = d_create(g_daq, "daq_pulses", Int32, ((daq_n_samples,daq_n_channels,start_n_events),(daq_n_samples,daq_n_channels,n_max_events)), "chunk", (daq_n_samples,daq_n_channels,chunk_size_pulses) )
+            d_daq_pulses = d_create(g_daq, "daq_pulses", Int32, ((daq_n_samples,daq_n_channels,start_n_events),(daq_n_samples,daq_n_channels,n_max_events)), chunk=(daq_n_samples,daq_n_channels,chunk_size_pulses) )
         end
     end
 
@@ -313,17 +313,20 @@ function sis3316_to_hdf5(input_io::IO, output_hdf5_file;    n_channel=16, n_samp
     # set_dims!(d_event_number, (1,myevtno))
     # set_dims!(d_daq_time,     (1,myevtno))
     @info n_events_written
-    set_dims!(d_event_number, (n_events_written,))
-    set_dims!(d_daq_time,     (size(d_daq_time, 1), n_events_written))
-    set_dims!(d_daq_energy,   (daq_n_channels, n_events_written))
+    HDF5.set_extent_dims(d_event_number, (n_events_written,))
+    HDF5.set_extent_dims(d_daq_time,     (size(d_daq_time, 1), n_events_written))
+    HDF5.set_extent_dims(d_daq_energy,   (daq_n_channels, n_events_written))
     if waveform_format == :integers
-        set_dims!(d_daq_pulses, (daq_n_samples,daq_n_channels,n_events_written))
+        HDF5.set_extent_dims(d_daq_pulses, (daq_n_samples,daq_n_channels,n_events_written))
     end
 
     g_general = g_create(output_hdf5_file, "INFO")
-    attrs(g_general)["N_events_in_binary_file"] = evtno
-    attrs(g_general)["N_events"] = n_events_written
-    attrs(g_general)["N_corrupted_events"] = number_of_corrupted_events
+    # attrs(g_general)["N_events_in_binary_file"] = evtno
+    # attrs(g_general)["N_events"] = n_events_written
+    # attrs(g_general)["N_corrupted_events"] = number_of_corrupted_events
+    write_attribute(g_general,"N_events_in_binary_file", evtno)
+    write_attribute(g_general,"N_events", n_events_written)
+    write_attribute(g_general,"N_corrupted_events", number_of_corrupted_events)
 
     close(output_hdf5_file)
     return nothing

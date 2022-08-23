@@ -67,7 +67,14 @@ end
 
 
 export convert_all_files
-function convert_all_files(;directory = pwd(),process_pulses::Bool=true,compressed::Bool=false,compress_after_conversion::Bool=true,move_converted_file::Bool=true,use_true_event_number::Bool=false, new_pulse_format=true)
+function convert_all_files(;directory = pwd(),
+  process_pulses::Bool=true,
+  compressed::Bool=false,
+  compress_after_conversion::Bool=true,
+  move_converted_file::Bool=true,
+  use_true_event_number::Bool=false,
+  parallel = true,
+  new_pulse_format=true)
   if compressed==false
    list_of_files_to_convert = filter(x->endswith(x,".dat"),readdir(directory))
   # elseif compressed==false
@@ -78,14 +85,18 @@ function convert_all_files(;directory = pwd(),process_pulses::Bool=true,compress
   @info("Total $(length(list_of_files_to_convert)) files to convert..")
 
  function process_one_file(file)
-    if compressed==true
-      run(`bzip2 -d $file`)
-      file = file[1:searchindex(file,match(r"bz2",file).match)-2]
+    if compressed==true      
+      file = file[1:findlast(match(r"bz2",file).match, file).start-2]
     end
     output_filename = "$(file[1:end-4]).hdf5"
     # cd("$directory")
     if !ispath("../conv_data/$output_filename")
       @info("now processing file $file")
+      if compressed == true
+        cfile = file*".bz2"
+        @info("decompressing file $cfile")  
+        run(`bzip2 -d $cfile`)
+      end
       if process_pulses == true
         sis3316_to_hdf5(file,evt_merge_window=100e-9,waveform_format = :integers,use_true_event_number=use_true_event_number)
         # sis3316_to_hdf5(file,evt_merge_window=100e-9,n_channel=5,waveform_format = :integers,use_true_event_number=use_true_event_number, new_pulse_format=new_pulse_format)
@@ -107,7 +118,11 @@ function convert_all_files(;directory = pwd(),process_pulses::Bool=true,compress
     end
    end
 
-   map(process_one_file,list_of_files_to_convert)
+   if parallel == true
+    pmap(process_one_file,list_of_files_to_convert)
+   else
+    map(process_one_file,list_of_files_to_convert)
+   end
 
   if basename(pwd())=="raw_data"
       chmod.("../conv_data/".*filter(x -> endswith(x, ".hdf5"), readdir("../conv_data/")), 0o774)

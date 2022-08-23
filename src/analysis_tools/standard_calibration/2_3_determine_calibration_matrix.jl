@@ -12,7 +12,7 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
     for i in 1:n_channel c[i,i] = 1 end
     c[1, 1] = inv(c0)
 
-    mpas::Array{T, 2} = transpose(get_measured_pulse_amplitudes(m))
+    mpas::Array{T, 2} = transpose(get_measured_pulse_amplitudes(m)[:, get_event_indices(GAT.get_event_flags(m), :healthy) ])
     n_events = size(mpas, 1)
 
     ratios = Array{T, 2}(undef, n_events, n_segments )
@@ -44,7 +44,7 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
         ct_peak_pos = mp[ct_peak_idx]
         start_idx = StatsBase.binindex(h, ct_peak_pos + ct_peak_min_shift)
         cal_peak_idx = findmax(h.weights[start_idx:end])[2] - 1
-        # if iseg == 4 ## <- modify for distorted pulses
+        # if iseg == 1 ## <- modify for distorted pulses
         #     start_idx = StatsBase.binindex(h, ct_peak_pos + 0.6)
         #     cal_peak_idx = findmax(h.weights[start_idx:end])[2] - 1
         # end
@@ -63,28 +63,33 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
     cal_ratio_hists = [ fit(Histogram, ratios[:, iseg], cal_peak_rough_pos[iseg] - 0.05:0.001:cal_peak_rough_pos[iseg] + 0.05, closed=:left ) for iseg in 1:size(ratios, 2)]
     cal_peak_pos = zeros(Float64, n_segments)
     # cal_peak_fits = GeDetSpectrumAnalyserTmp.Fit[]
-    cal_peak_fits = RadiationSpectra.FitFunction[]
+    cal_peak_fits = RadiationSpectra_beforeBAT.FitFunction[]
 
     plts = []
     for iseg in eachindex(1:n_channel-1)
         h = cal_ratio_hists[iseg]
         mp = (h.edges[1][1:length(h.edges[1])-1] .+ 0.5 * step(h.edges[1]))
         cal_peak_idx = findmax(h.weights)[2]
-        init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 2 * step(h.edges[1]), mp[cal_peak_idx] ]
-        fitrange = ((mp[cal_peak_idx] - 6 * step(h.edges[1])), (mp[cal_peak_idx] + 7.5 * step(h.edges[1])))
-        fitf = RadiationSpectra.FitFunction{T}( scaled_cauchy, 1, 3 )
+        #init_fit_params = [ h.weights[cal_peak_idx] * 2π * step(h.edges[1]), 3 * step(h.edges[1]), mp[cal_peak_idx] ]
+        init_fit_params = [ h.weights[cal_peak_idx] * 2π, 5 * step(h.edges[1]), mp[cal_peak_idx] ]
+        fitrange = ((mp[cal_peak_idx] - 8.5 * step(h.edges[1])), (mp[cal_peak_idx] + 8.5 * step(h.edges[1])))
+        fitf = RadiationSpectra_beforeBAT.FitFunction{T}( scaled_cauchy, 1, 3 )
         set_initial_parameters!(fitf, init_fit_params)
         set_fitranges!(fitf, (fitrange,))
-        RadiationSpectra.lsqfit!(fitf, h)
+        RadiationSpectra_beforeBAT.lsqfit!(fitf, h)
         push!(cal_peak_fits, fitf)
         # push!(cal_peak_fits, fr)
         cal_peak_pos[iseg] = fitf.fitted_parameters[3]
         # cal_peak_pos[iseg] = fr.parameters[3]
         if create_plots
             p = plot(h, st=:step, label="", title="seg$iseg")
+            # p = plot(st=:step, label="", title="seg$iseg")
             bw = StatsBase.binvolume(h, 1)
-            plot!(p, fitf, label="", bin_width = bw)
+            plot!(p, fitf, label="")#, bin_width = bw)
+            plot!(p, fitf, label="Init params", use_initial_parameters = true)#, bin_width = bw)
             push!(plts, p)
+            #@info fitf.initial_parameters
+            #@info fitf.fitted_parameters
         end
     end
     if create_plots
@@ -114,10 +119,10 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
         end
     end
     # ct_peak_fits = Array{Array{GeDetSpectrumAnalyserTmp.Fit, 1}}([])
-    ct_peak_fits = Array{Array{RadiationSpectra.FitFunction, 1}}([])
+    ct_peak_fits = Array{Array{RadiationSpectra_beforeBAT.FitFunction, 1}}([])
     for ichn_src in 2:n_channel
         iseg_src = ichn_src - 1
-        tmpfits = Array{RadiationSpectra.FitFunction, 1}([])
+        tmpfits = Array{RadiationSpectra_beforeBAT.FitFunction, 1}([])
         plts = []
         for ichn_tar in 2:n_channel
             iseg_tar = ichn_tar - 1
@@ -127,14 +132,15 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
             ct_peak_pos = mp[ct_peak_idx]
 
             init_fit_params = [ h.weights[ct_peak_idx] * 2π * step(h.edges[1]), 3 * step(h.edges[1]), mp[ct_peak_idx] ]
+            init_fit_params = [ h.weights[ct_peak_idx] * 2π , 3 * step(h.edges[1]), mp[ct_peak_idx] ]
             # println("init fit params: $ichn_src, $ichn_tar", init_fit_params)
             # init_fit_params = [ h.weights[ct_peak_idx] *  step(h.edges[1]), 2 * step(h.edges[1]), mp[ct_peak_idx] ]
             # fitrange = (mp[ct_peak_idx] - 3 * step(h.edges[1])):step(h.edges[1]):(mp[ct_peak_idx] + 3 * step(h.edges[1]))
-            fitrange = ((mp[ct_peak_idx] - 7 * step(h.edges[1])), (mp[ct_peak_idx] + 7 * step(h.edges[1])))## <- modify for distorted pulses
-            fitf = RadiationSpectra.FitFunction{T}( scaled_cauchy, 1, 3 )
+            fitrange = ((mp[ct_peak_idx] - 8 * step(h.edges[1])), (mp[ct_peak_idx] + 8 * step(h.edges[1])))## <- modify for distorted pulses
+            fitf = RadiationSpectra_beforeBAT.FitFunction{T}( scaled_cauchy, 1, 3 )
             set_initial_parameters!(fitf, init_fit_params)
             set_fitranges!(fitf, (fitrange,))
-            RadiationSpectra.lsqfit!(fitf, h)
+            RadiationSpectra_beforeBAT.lsqfit!(fitf, h)
             push!(tmpfits, fitf)
             ct_peak_pos = fitf.fitted_parameters[3]
             # push!(tmpfits, fr)
@@ -145,7 +151,10 @@ function determine_calibration_matrix_with_mpas(m::Measurement, core_calibration
                 if create_plots
                     p = plot(h, st=:step, legend=false, title="mpa ratio: seg$(iseg_tar) / core", )
                     bw = StatsBase.binvolume(h, 1)
-                    plot!(p, fitf, bin_width = bw)
+                    plot!(p, fitf)#, bin_width = bw)
+                    plot!(p, fitf, label="Initial params", use_initial_parameters = true)#, bin_width = bw)
+                    #@info(fitf.initial_parameters)
+                    #@info(fitf.fitted_parameters)
                     # plot!(p, fr)
                     push!(plts, p)
                 end

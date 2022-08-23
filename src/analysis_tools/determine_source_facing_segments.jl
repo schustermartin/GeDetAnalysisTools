@@ -76,3 +76,15 @@ function fit_source_peak_and_determine_sfc(m::Measurement, peakenergy::T, sno_li
 	# return source_facing_channels, ehists, funcs, frs
 	return source_facing_channels, ehists, fit_functions
 end
+function get_sfs(m, energy, thresh = 0.1*energy)
+    energies = get_energies(m)
+    ss_idcs = get_single_segment_indices(m)
+    accepted_energy_idcs = findall(x->energy-thresh < x <energy + thresh, energies[1,:])
+    n_ss_idcs=[
+        sum(findall(x->x == UInt8(2), ss_idcs[accepted_energy_idcs])),
+        sum(findall(x->x == UInt8(3), ss_idcs[accepted_energy_idcs])),
+        sum(findall(x->x == UInt8(4), ss_idcs[accepted_energy_idcs])),
+        sum(findall(x->x == UInt8(5), ss_idcs[accepted_energy_idcs]))
+    ]
+    findmax(n_ss_idcs)[2]
+end
